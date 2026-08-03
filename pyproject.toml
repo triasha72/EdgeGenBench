@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edgegenbench"
+version = "0.1.0"
+description = "Uncertainty-aware surrogate modeling and edge-ready inference for hybrid-electric and hydrogen regional aircraft design."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "Triasha Sarkar" }
+]
+keywords = [
+  "surrogate-modeling",
+  "uncertainty-quantification",
+  "aircraft-design",
+  "multi-objective-optimization",
+  "edge-ai",
+  "onnx"
+]
+dependencies = [
+  "matplotlib>=3.9",
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "pyyaml>=6.0",
+  "scikit-learn>=1.5",
+  "scipy>=1.14",
+  "typer>=0.12"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.6"
+]
+edge = [
+  "onnx>=1.16",
+  "onnxruntime>=1.19"
+]
+neural = [
+  "torch>=2.4"
+]
+
+[project.scripts]
+edgegenbench = "edgegenbench.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/edgegenbench/cli.py" = ["B008"]

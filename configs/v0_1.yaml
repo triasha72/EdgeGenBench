@@ -1,0 +1,45 @@
+schema_version: "1.0.0"
+
+dataset:
+  name: "edgegenbench_v0_1"
+  n_samples: 6000
+  seed: 42
+  train_fraction: 0.70
+  validation_fraction: 0.15
+  filename: "edgegenbench_v0_1.csv"
+
+output:
+  directory: "data/raw"
+
+design_space:
+  passenger_capacity:
+    min: 40
+    max: 90
+  design_range_km:
+    min: 400
+    max: 1500
+  cruise_speed_kmh:
+    min: 420
+    max: 650
+  battery_specific_energy_wh_per_kg:
+    min: 300
+    max: 750
+  hydrogen_storage_efficiency:
+    min: 0.45
+    max: 0.70
+  hybridization_ratio:
+    min: 0.00
+    max: 0.65
+  propulsion_architecture:
+    categories:
+      - conventional_turboprop
+      - parallel_hybrid
+      - series_hybrid
+      - fuel_cell_electric
+
+constraints:
+  max_battery_mass_fraction: 0.32
+  max_takeoff_mass_base_kg: 18000
+  max_takeoff_mass_per_passenger_kg: 130
+  max_hydrogen_tank_volume_base_m3: 5.0
+  max_hydrogen_tank_volume_per_passenger_m3: 0.10

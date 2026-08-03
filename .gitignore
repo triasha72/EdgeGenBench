@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Environments and secrets
+.venv/
+.env
+.env.*
+.DS_Store
+
+# Generated data, models, and reports
+artifacts/
+models/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# Deployment artifacts
+*.onnx
+*.joblib
+*.pt
+*.pth
