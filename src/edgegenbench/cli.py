@@ -9,6 +9,9 @@ from edgegenbench.data.generate import generate_dataset
 from edgegenbench.evaluation.model_comparison import (
     compare_model_artifacts,
 )
+from edgegenbench.training.feasibility import (
+    train_feasibility_classifier,
+)
 from edgegenbench.training.fp32_baseline import (
     train_fp32_baseline,
 )
@@ -223,3 +226,51 @@ def evaluate_uncertainty_command(
     typer.echo(f"Test rows: {artifacts.test_rows}")
     typer.echo(f"Coverage metrics: {artifacts.coverage_metrics_path}")
     typer.echo(f"Uncertainty summary: {artifacts.summary_path}")
+
+
+@app.command(name="train-feasibility-classifier")
+def train_feasibility(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Path to the generated EdgeGenBench dataset."),
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/feasibility_classifier"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help=("Directory for feasibility classifier artifacts."),
+    ),
+    max_false_safe_rate: float = typer.Option(
+        0.05,
+        "--max-false-safe-rate",
+        min=0.0,
+        max=1.0,
+        help=("Maximum validation false-safe rate used for threshold selection."),
+    ),
+) -> None:
+    """Train and evaluate the feasibility classifier."""
+    artifacts = train_feasibility_classifier(
+        dataset_path=dataset,
+        output_dir=output_dir,
+        max_false_safe_rate=(max_false_safe_rate),
+    )
+
+    typer.echo(f"Selected threshold: {artifacts.selected_threshold:.2f}")
+
+    typer.echo(f"Test false-safe rate: {artifacts.false_safe_rate:.4f}")
+
+    typer.echo(f"Test balanced accuracy: {artifacts.balanced_accuracy:.4f}")
+
+    typer.echo(f"Test rows: {artifacts.test_rows}")
+
+    typer.echo(f"Saved model: {artifacts.model_path}")
+
+    typer.echo(f"Saved summary: {artifacts.summary_path}")
