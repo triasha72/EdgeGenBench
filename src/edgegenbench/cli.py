@@ -7,6 +7,7 @@ import typer
 from edgegenbench import __version__
 from edgegenbench.data.generate import generate_dataset
 from edgegenbench.training.fp32_baseline import train_fp32_baseline
+from edgegenbench.training.tree_baselines import train_tree_baselines
 
 app = typer.Typer(
     add_completion=False,
@@ -49,7 +50,10 @@ def generate_data(
     ),
 ) -> None:
     """Generate a reproducible synthetic aircraft-design benchmark dataset."""
-    artifacts = generate_dataset(config_path=config, output_dir=output_dir)
+    artifacts = generate_dataset(
+        config_path=config,
+        output_dir=output_dir,
+    )
 
     typer.echo(f"Created dataset: {artifacts.data_path}")
     typer.echo(f"Created metadata: {artifacts.metadata_path}")
@@ -89,3 +93,38 @@ def train_fp32(
     typer.echo(f"Mean test R2: {artifacts.mean_test_r2:.6f}")
     typer.echo(f"Saved model: {artifacts.model_path}")
     typer.echo(f"Saved summary: {artifacts.summary_path}")
+
+
+@app.command(name="train-tree-baselines")
+def train_trees(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Path to the generated EdgeGenBench CSV dataset.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/tree_baselines"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for nonlinear model artifacts.",
+    ),
+) -> None:
+    """Train and evaluate nonlinear tree-based baselines."""
+    model_artifacts = train_tree_baselines(
+        dataset_path=dataset,
+        output_dir=output_dir,
+    )
+
+    for artifact in model_artifacts:
+        typer.echo(f"Model: {artifact.model_type}")
+        typer.echo(f"  Mean test NRMSE: {artifact.mean_test_nrmse_std:.6f}")
+        typer.echo(f"  Mean test R2: {artifact.mean_test_r2:.6f}")
+        typer.echo(f"  Saved model: {artifact.model_path}")
+        typer.echo(f"  Saved summary: {artifact.summary_path}")
