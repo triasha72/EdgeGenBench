@@ -1,0 +1,47 @@
+schema_version: "1.0.0"
+
+optimization:
+  name: "regional_aircraft_trade_study_v0_1"
+  n_candidates: 20000
+  seed: 42
+
+mission:
+  passenger_capacity: 70
+  design_range_km: 1000
+
+design_space:
+  cruise_speed_kmh:
+    min: 420
+    max: 650
+
+  battery_specific_energy_wh_per_kg:
+    min: 300
+    max: 750
+
+  hydrogen_storage_efficiency:
+    min: 0.45
+    max: 0.70
+
+  hybridization_ratio:
+    min: 0.00
+    max: 0.65
+
+  propulsion_architecture:
+    categories:
+      - conventional_turboprop
+      - parallel_hybrid
+      - series_hybrid
+      - fuel_cell_electric
+
+objectives:
+  - name: lifecycle_emissions_proxy_kgco2e
+    direction: minimize
+
+  - name: operating_cost_proxy_usd
+    direction: minimize
+
+  - name: noise_proxy_db
+    direction: minimize
+
+output:
+  directory: artifacts/optimization
