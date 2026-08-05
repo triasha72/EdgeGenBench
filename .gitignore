@@ -13,7 +13,7 @@ __pycache__/
 
 # Generated data, models, and reports
 artifacts/
-models/
+/models/
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
