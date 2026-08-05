@@ -1,75 +1,130 @@
 # EdgeGenBench
-
+[![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
 **Uncertainty-aware surrogate modeling and edge-ready inference for hybrid-electric and hydrogen regional-aircraft design.**
 
-## Objective
+## Overview
 
-EdgeGenBench is an independent, reproducible benchmark for comparing surrogate models used in early aircraft design trade studies. It evaluates predictive accuracy, uncertainty behavior, optimization usefulness, and deployment efficiency.
+EdgeGenBench is an independent and reproducible benchmark for comparing surrogate models used in early aircraft-design trade studies.
 
-The project uses public or synthetic data only. It does not use proprietary ATR, R&T-team, or industry code or data.
+The project evaluates:
 
-## What it will benchmark
+- predictive accuracy;
+- uncertainty behavior;
+- optimization usefulness;
+- model size;
+- inference latency;
+- readiness for edge deployment.
 
-- Gaussian-process, radial-basis-function, and neural surrogate models
-- Physics-informed synthetic aircraft-design data generation
-- Uncertainty estimation and calibration
-- Constrained multi-objective optimization and Pareto-front analysis
-- ONNX export, quantization, model size, and inference-latency comparisons
+The project uses synthetic or public data only. It does not use proprietary aircraft-manufacturer data, software, or design information.
 
-## Initial design variables
+## Current capabilities
 
-- Passenger capacity
-- Design range
-- Cruise speed
-- Battery specific energy
-- Hydrogen storage efficiency
-- Hybridization ratio
-- Propulsion architecture
+EdgeGenBench currently supports:
+
+- physics-informed synthetic aircraft-design data generation;
+- deterministic train, validation, and test splits;
+- a multi-output FP32 ridge-regression surrogate;
+- validation-based hyperparameter selection;
+- held-out test evaluation;
+- MAE, RMSE, normalized RMSE, and R² reporting;
+- model serialization;
+- batch-inference latency measurement;
+- reproducibility metadata.
+
+## Design variables
+
+The synthetic benchmark uses:
+
+- passenger capacity;
+- design range;
+- cruise speed;
+- battery specific energy;
+- hydrogen-storage efficiency;
+- hybridization ratio;
+- propulsion architecture.
+
+## Synthetic outputs
+
+The generated targets include:
+
+- estimated takeoff mass;
+- mission energy demand;
+- energy per passenger-kilometre;
+- lifecycle-emissions proxy;
+- operating-cost proxy;
+- noise proxy;
+- battery and hydrogen-system quantities;
+- feasibility margins.
 
 ## Roadmap
 
-1. Build a reproducible synthetic hybrid-electric/hydrogen aircraft design dataset.
-2. Train and validate surrogate-model baselines.
-3. Compare uncertainty and failure behavior across models.
+1. Build a reproducible synthetic aircraft-design dataset.
+2. Train and validate linear and nonlinear surrogate baselines.
+3. Compare uncertainty and failure behavior.
 4. Run constrained multi-objective optimization.
-5. Export the best deployable model to ONNX and benchmark edge inference.
+5. Export suitable models to ONNX.
+6. Benchmark model size, quantization, and edge inference.
 
-## Development
+## Installation
+
+Create and activate a Python 3.12 environment, then install the project:
 
 ```bash
+python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-pytest
-ruff check .
+```
+
+Confirm the CLI installation:
+
+```bash
 edgegenbench info
+```
 
 ## Generate the benchmark dataset
 
 ```bash
-edgegenbench generate-data --config configs/v0_1.yaml
+edgegenbench generate-data \
+  --config configs/v0_1.yaml
+```
 
-## 9. Train the FP32 baseline
+Generated data are written to:
 
-Generate the synthetic dataset first:
+```text
+data/raw/
+```
+
+The generated dataset is intentionally excluded from Git.
+
+## Train the FP32 baseline
 
 ```bash
-edgegenbench generate-data --config configs/v0_1.yaml
+edgegenbench train-fp32-baseline \
+  --dataset data/raw/edgegenbench_v0_1.csv \
+  --output-dir artifacts/fp32_baseline
+```
 
-## 10. Run everything
+The pipeline:
 
-From the repository root:
+- tunes ridge regularization using the validation split;
+- refits the selected model using training and validation data;
+- evaluates once on the held-out test split;
+- saves metrics, predictions, latency measurements, and model metadata.
+
+Generated model artifacts are written to:
+
+```text
+artifacts/fp32_baseline/
+```
+
+## Run project checks
 
 ```bash
 ruff format .
 ruff check .
 pytest
-edgegenbench info
-edgegenbench generate-data --config configs/v0_1.yaml
-ls -lh data/raw
-git status
+```
 
-# 11. Final verification
-
-Run the complete workflow:
+## Run the complete workflow
 
 ```bash
 ruff format .
@@ -84,5 +139,42 @@ edgegenbench generate-data \
 edgegenbench train-fp32-baseline \
   --dataset data/raw/edgegenbench_v0_1.csv \
   --output-dir artifacts/fp32_baseline
-  git status
-git diff --stat
+```
+
+## Repository structure
+
+```text
+EdgeGenBench/
+├── configs/
+├── data/
+├── docs/
+├── notebooks/
+├── reports/
+├── scripts/
+├── src/edgegenbench/
+│   ├── data/
+│   ├── deployment/
+│   ├── evaluation/
+│   ├── models/
+│   ├── optimization/
+│   ├── physics/
+│   └── training/
+├── tests/
+├── pyproject.toml
+└── README.md
+```
+
+## Limitations
+
+The synthetic physics model is intended for machine-learning benchmarking and software-development experiments.
+
+It is not:
+
+- a certified aircraft-sizing tool;
+- an operational performance model;
+- a manufacturer design prediction;
+- a substitute for validated engineering analysis.
+
+## Author
+
+Triasha Sarkar
