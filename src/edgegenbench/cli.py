@@ -6,8 +6,17 @@ import typer
 
 from edgegenbench import __version__
 from edgegenbench.data.generate import generate_dataset
+from edgegenbench.deployment.benchmark import (
+    benchmark_edge_models,
+)
+from edgegenbench.deployment.onnx_export import (
+    export_edge_models,
+)
 from edgegenbench.evaluation.model_comparison import (
     compare_model_artifacts,
+)
+from edgegenbench.evaluation.physics_validation import (
+    validate_optimization_designs,
 )
 from edgegenbench.optimization.pipeline import (
     optimize_designs,
@@ -339,3 +348,187 @@ def optimize_designs_command(
     typer.echo(f"Safety threshold: {artifacts.feasibility_threshold:.2f}")
 
     typer.echo(f"Saved summary: {artifacts.summary_path}")
+
+
+@app.command(name="validate-optimization")
+def validate_optimization_command(
+    designs: Path = typer.Option(
+        Path("artifacts/optimization/representative_designs.csv"),
+        "--designs",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Optimized designs to validate.",
+    ),
+    benchmark_config: Path = typer.Option(
+        Path("configs/v0_1.yaml"),
+        "--benchmark-config",
+        "-c",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Physics benchmark configuration.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/optimization_validation"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for validation artifacts.",
+    ),
+) -> None:
+    """Validate optimized designs against the physics model."""
+    artifacts = validate_optimization_designs(
+        designs_path=designs,
+        benchmark_config_path=benchmark_config,
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Designs validated: {artifacts.design_count}")
+
+    typer.echo(f"Targets validated: {artifacts.validated_target_count}")
+
+    typer.echo(f"Feasibility agreement: {artifacts.feasibility_agreement_rate:.2%}")
+
+    typer.echo(f"Saved metrics: {artifacts.metrics_path}")
+
+    typer.echo(f"Saved summary: {artifacts.summary_path}")
+
+
+@app.command(name="export-edge-models")
+def export_edge_models_command(
+    surrogate_model: Path = typer.Option(
+        Path("artifacts/tree_baselines/random_forest/model.joblib"),
+        "--surrogate-model",
+        "-s",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Trained surrogate model.",
+    ),
+    feasibility_model: Path = typer.Option(
+        Path("artifacts/feasibility_classifier/model.joblib"),
+        "--feasibility-model",
+        "-f",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Trained feasibility classifier.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/edge_export"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for exported ONNX models.",
+    ),
+) -> None:
+    """Export trained estimators to ONNX."""
+    artifacts = export_edge_models(
+        surrogate_model_path=(surrogate_model),
+        feasibility_model_path=(feasibility_model),
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Encoded features: {artifacts.feature_count}")
+
+    typer.echo(f"Surrogate targets: {artifacts.surrogate_target_count}")
+
+    typer.echo(f"Safety threshold: {artifacts.feasibility_threshold:.2f}")
+
+    typer.echo(f"Surrogate ONNX: {artifacts.surrogate_onnx_path}")
+
+    typer.echo(f"Feasibility ONNX: {artifacts.feasibility_onnx_path}")
+
+    typer.echo(f"Metadata: {artifacts.metadata_path}")
+
+
+@app.command(name="benchmark-edge-models")
+def benchmark_edge_models_command(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Benchmark dataset.",
+    ),
+    surrogate_model: Path = typer.Option(
+        Path("artifacts/tree_baselines/random_forest/model.joblib"),
+        "--surrogate-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    feasibility_model: Path = typer.Option(
+        Path("artifacts/feasibility_classifier/model.joblib"),
+        "--feasibility-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    surrogate_onnx: Path = typer.Option(
+        Path("artifacts/edge_export/surrogate.onnx"),
+        "--surrogate-onnx",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    feasibility_onnx: Path = typer.Option(
+        Path("artifacts/edge_export/feasibility.onnx"),
+        "--feasibility-onnx",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    metadata: Path = typer.Option(
+        Path("artifacts/edge_export/metadata.json"),
+        "--metadata",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/edge_benchmark"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+    ),
+) -> None:
+    """Benchmark ONNX Runtime against Scikit-learn."""
+    artifacts = benchmark_edge_models(
+        dataset_path=dataset,
+        surrogate_model_path=(surrogate_model),
+        feasibility_model_path=(feasibility_model),
+        surrogate_onnx_path=(surrogate_onnx),
+        feasibility_onnx_path=(feasibility_onnx),
+        metadata_path=metadata,
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Test rows: {artifacts.test_rows}")
+
+    typer.echo(f"Classifier agreement: {artifacts.classifier_agreement:.2%}")
+
+    typer.echo(f"Maximum surrogate difference: {artifacts.max_surrogate_absolute_error:.6g}")
+
+    typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
+
+    typer.echo(f"Latency report: {artifacts.latency_path}")
+
+    typer.echo(f"Summary: {artifacts.summary_path}")
