@@ -26,3 +26,6 @@ reports/*
 *.joblib
 *.pt
 *.pth
+# Local backup files
+backups/
+*.bak

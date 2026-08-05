@@ -32,6 +32,7 @@ class OptimizationConfig:
     name: str
     candidate_count: int
     seed: int
+    feasibility_threshold: float
     passenger_capacity: int
     design_range_km: float
     continuous_bounds: dict[str, tuple[float, float]]
@@ -156,8 +157,18 @@ def load_optimization_config(
     candidate_count = int(optimization.get("n_candidates", 0))
     seed = int(optimization.get("seed", 42))
 
+    feasibility_threshold = float(
+        optimization.get(
+            "feasibility_threshold",
+            0.50,
+        )
+    )
+
     if candidate_count < 8:
         raise ValueError("n_candidates must be at least 8.")
+
+    if not 0.0 <= feasibility_threshold <= 1.0:
+        raise ValueError("optimization.feasibility_threshold must be between zero and one.")
 
     passenger_capacity = int(mission.get("passenger_capacity", 0))
     design_range_km = float(mission.get("design_range_km", 0.0))
@@ -217,6 +228,7 @@ def load_optimization_config(
         name=name,
         candidate_count=candidate_count,
         seed=seed,
+        feasibility_threshold=feasibility_threshold,
         passenger_capacity=passenger_capacity,
         design_range_km=design_range_km,
         continuous_bounds=continuous_bounds,
