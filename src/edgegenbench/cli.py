@@ -9,6 +9,9 @@ from edgegenbench.data.generate import generate_dataset
 from edgegenbench.evaluation.model_comparison import (
     compare_model_artifacts,
 )
+from edgegenbench.optimization.pipeline import (
+    optimize_designs,
+)
 from edgegenbench.training.feasibility import (
     train_feasibility_classifier,
 )
@@ -272,5 +275,67 @@ def train_feasibility(
     typer.echo(f"Test rows: {artifacts.test_rows}")
 
     typer.echo(f"Saved model: {artifacts.model_path}")
+
+    typer.echo(f"Saved summary: {artifacts.summary_path}")
+
+
+@app.command(name="optimize-designs")
+def optimize_designs_command(
+    config: Path = typer.Option(
+        Path("configs/optimization_v0_1.yaml"),
+        "--config",
+        "-c",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Optimization configuration.",
+    ),
+    surrogate_model: Path = typer.Option(
+        Path("artifacts/tree_baselines/random_forest/model.joblib"),
+        "--surrogate-model",
+        "-s",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Trained surrogate model.",
+    ),
+    feasibility_model: Path = typer.Option(
+        Path("artifacts/feasibility_classifier/model.joblib"),
+        "--feasibility-model",
+        "-f",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Trained feasibility classifier.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/optimization"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for optimization artifacts.",
+    ),
+) -> None:
+    """Run constrained multi-objective optimization."""
+    artifacts = optimize_designs(
+        config_path=config,
+        surrogate_model_path=surrogate_model,
+        feasibility_model_path=(feasibility_model),
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Candidates: {artifacts.candidate_count}")
+
+    typer.echo(f"Feasible candidates: {artifacts.feasible_count}")
+
+    typer.echo(f"Feasible fraction: {artifacts.feasible_fraction:.2%}")
+
+    typer.echo(f"Pareto designs: {artifacts.pareto_count}")
+
+    typer.echo(f"Safety threshold: {artifacts.feasibility_threshold:.2f}")
 
     typer.echo(f"Saved summary: {artifacts.summary_path}")
