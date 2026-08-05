@@ -37,7 +37,8 @@ dev = [
 ]
 edge = [
   "onnx>=1.16",
-  "onnxruntime>=1.19"
+  "onnxruntime>=1.19",
+  "skl2onnx>=1.20"
 ]
 neural = [
   "torch>=2.4"
