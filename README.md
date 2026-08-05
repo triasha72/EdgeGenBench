@@ -47,8 +47,14 @@ edgegenbench info
 ```bash
 edgegenbench generate-data --config configs/v0_1.yaml
 
+## 9. Train the FP32 baseline
 
-## 9. Run everything
+Generate the synthetic dataset first:
+
+```bash
+edgegenbench generate-data --config configs/v0_1.yaml
+
+## 10. Run everything
 
 From the repository root:
 
@@ -60,3 +66,23 @@ edgegenbench info
 edgegenbench generate-data --config configs/v0_1.yaml
 ls -lh data/raw
 git status
+
+# 11. Final verification
+
+Run the complete workflow:
+
+```bash
+ruff format .
+ruff check .
+pytest
+
+edgegenbench info
+
+edgegenbench generate-data \
+  --config configs/v0_1.yaml
+
+edgegenbench train-fp32-baseline \
+  --dataset data/raw/edgegenbench_v0_1.csv \
+  --output-dir artifacts/fp32_baseline
+  git status
+git diff --stat
