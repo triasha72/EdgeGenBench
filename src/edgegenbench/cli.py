@@ -6,8 +6,15 @@ import typer
 
 from edgegenbench import __version__
 from edgegenbench.data.generate import generate_dataset
-from edgegenbench.training.fp32_baseline import train_fp32_baseline
-from edgegenbench.training.tree_baselines import train_tree_baselines
+from edgegenbench.evaluation.model_comparison import (
+    compare_model_artifacts,
+)
+from edgegenbench.training.fp32_baseline import (
+    train_fp32_baseline,
+)
+from edgegenbench.training.tree_baselines import (
+    train_tree_baselines,
+)
 
 app = typer.Typer(
     add_completion=False,
@@ -128,3 +135,36 @@ def train_trees(
         typer.echo(f"  Mean test R2: {artifact.mean_test_r2:.6f}")
         typer.echo(f"  Saved model: {artifact.model_path}")
         typer.echo(f"  Saved summary: {artifact.summary_path}")
+
+
+@app.command(name="compare-models")
+def compare_models(
+    artifact_root: Path = typer.Option(
+        Path("artifacts"),
+        "--artifact-root",
+        "-a",
+        file_okay=False,
+        dir_okay=True,
+        help="Root directory containing model artifacts.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("reports/model_comparison"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for comparison tables and plots.",
+    ),
+) -> None:
+    """Compare completed surrogate-model training runs."""
+    artifacts = compare_model_artifacts(
+        artifact_root=artifact_root,
+        output_dir=output_dir,
+    )
+
+    typer.echo("Models compared: 3")
+    typer.echo(f"Best accuracy model: {artifacts.best_accuracy_model}")
+    typer.echo(f"Best mean R2 model: {artifacts.best_mean_r2_model}")
+    typer.echo(f"Lowest batch-1 latency: {artifacts.lowest_latency_model}")
+    typer.echo(f"Smallest model: {artifacts.smallest_model}")
+    typer.echo(f"Saved report: {artifacts.aggregate_metrics_path.parent}")
