@@ -4,6 +4,7 @@ optimization:
   name: "regional_aircraft_trade_study_v0_1"
   n_candidates: 20000
   seed: 42
+  feasibility_threshold: 0.50
 
 mission:
   passenger_capacity: 70

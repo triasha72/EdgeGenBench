@@ -1,5 +1,6 @@
 """Integration tests for multi-objective optimization."""
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +16,9 @@ from edgegenbench.models.feasibility import (
 from edgegenbench.models.tree_surrogate import (
     RANDOM_FOREST,
     TreeSurrogate,
+)
+from edgegenbench.optimization.design_space import (
+    load_optimization_config,
 )
 from edgegenbench.optimization.pipeline import (
     optimize_designs,
@@ -39,6 +43,7 @@ optimization:
   name: "test_multi_objective_optimization"
   n_candidates: 120
   seed: 42
+  feasibility_threshold: 0.50
 
 mission:
   passenger_capacity: 70
@@ -324,14 +329,45 @@ def test_optimization_pipeline_creates_outputs(
     assert artifacts.feasible_count > 0
     assert artifacts.pareto_count > 0
     assert artifacts.representative_count == 4
+    assert artifacts.feasibility_threshold == pytest.approx(0.50)
+
+    summary = json.loads(artifacts.summary_path.read_text(encoding="utf-8"))
+
+    assert summary["feasibility_threshold"] == pytest.approx(0.50)
 
     pareto_front = pd.read_csv(artifacts.pareto_front_path)
 
     assert (pareto_front["pareto_rank"] == 1).all()
+    assert np.allclose(
+        pareto_front["feasibility_threshold"],
+        0.50,
+    )
 
     representatives = pd.read_csv(artifacts.representative_designs_path)
 
     assert len(representatives) == 4
+
+
+def test_invalid_optimization_threshold_is_rejected(
+    tmp_path: Path,
+) -> None:
+    """Optimization thresholds outside zero to one should fail."""
+    config_path = tmp_path / "optimization.yaml"
+
+    _write_config(config_path)
+
+    content = config_path.read_text(encoding="utf-8")
+    content = content.replace(
+        "feasibility_threshold: 0.50",
+        "feasibility_threshold: 1.20",
+    )
+    config_path.write_text(content, encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match="feasibility_threshold",
+    ):
+        load_optimization_config(config_path)
 
 
 def test_missing_surrogate_model_is_rejected(

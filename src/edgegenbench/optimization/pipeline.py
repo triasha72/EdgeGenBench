@@ -65,6 +65,7 @@ def optimize_designs(
         surrogate_model_path=(surrogate_model_path),
         feasibility_model_path=(feasibility_model_path),
         objectives=config.objectives,
+        feasibility_threshold=config.feasibility_threshold,
     )
 
     if search_result.feasible_count == 0:

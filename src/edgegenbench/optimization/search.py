@@ -230,12 +230,16 @@ def run_candidate_search_from_paths(
     surrogate_model_path: Path,
     feasibility_model_path: Path,
     objectives: Sequence[str],
+    feasibility_threshold: float | None = None,
 ) -> CandidateSearchResult:
     """Load trained models and execute candidate search."""
     surrogate_model, feasibility_model = load_search_models(
         surrogate_model_path=surrogate_model_path,
         feasibility_model_path=(feasibility_model_path),
     )
+
+    if feasibility_threshold is not None:
+        feasibility_model = feasibility_model.with_threshold(feasibility_threshold)
 
     return run_candidate_search(
         candidates=candidates,
