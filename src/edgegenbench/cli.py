@@ -15,6 +15,9 @@ from edgegenbench.training.fp32_baseline import (
 from edgegenbench.training.tree_baselines import (
     train_tree_baselines,
 )
+from edgegenbench.uncertainty.pipeline import (
+    evaluate_uncertainty,
+)
 
 app = typer.Typer(
     add_completion=False,
@@ -168,3 +171,55 @@ def compare_models(
     typer.echo(f"Lowest batch-1 latency: {artifacts.lowest_latency_model}")
     typer.echo(f"Smallest model: {artifacts.smallest_model}")
     typer.echo(f"Saved report: {artifacts.aggregate_metrics_path.parent}")
+
+
+@app.command(name="evaluate-uncertainty")
+def evaluate_uncertainty_command(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Path to the generated benchmark dataset.",
+    ),
+    random_forest_summary: Path = typer.Option(
+        Path("artifacts/tree_baselines/random_forest/summary.json"),
+        "--random-forest-summary",
+        "-s",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Random-Forest model-selection summary.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/uncertainty"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for uncertainty artifacts.",
+    ),
+    calibration_fraction: float = typer.Option(
+        0.20,
+        "--calibration-fraction",
+        min=0.01,
+        max=0.99,
+        help="Fraction of training rows used for calibration.",
+    ),
+) -> None:
+    """Evaluate ensemble and conformal uncertainty."""
+    artifacts = evaluate_uncertainty(
+        dataset_path=dataset,
+        random_forest_summary_path=(random_forest_summary),
+        output_dir=output_dir,
+        calibration_fraction=calibration_fraction,
+    )
+
+    typer.echo(f"Calibration rows: {artifacts.calibration_rows}")
+    typer.echo(f"Test rows: {artifacts.test_rows}")
+    typer.echo(f"Coverage metrics: {artifacts.coverage_metrics_path}")
+    typer.echo(f"Uncertainty summary: {artifacts.summary_path}")
