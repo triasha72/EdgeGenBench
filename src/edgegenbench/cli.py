@@ -27,6 +27,9 @@ from edgegenbench.training.feasibility import (
 from edgegenbench.training.fp32_baseline import (
     train_fp32_baseline,
 )
+from edgegenbench.training.neural_surrogate import (
+    train_neural_surrogate,
+)
 from edgegenbench.training.tree_baselines import (
     train_tree_baselines,
 )
@@ -50,7 +53,7 @@ def main() -> None:
 def info() -> None:
     """Show the installed project version and status."""
     typer.echo(f"EdgeGenBench {__version__}")
-    typer.echo("Status: project scaffold ready.")
+    typer.echo("Status: compact neural edge-inference benchmark.")
 
 
 @app.command(name="generate-data")
@@ -155,6 +158,54 @@ def train_trees(
         typer.echo(f"  Saved summary: {artifact.summary_path}")
 
 
+@app.command(name="train-neural-surrogate")
+def train_neural_surrogate_command(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Generated EdgeGenBench training dataset.",
+    ),
+    config: Path = typer.Option(
+        Path("configs/neural_v0_2.yaml"),
+        "--config",
+        "-c",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Neural-surrogate training configuration.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_surrogate"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for neural-surrogate artifacts.",
+    ),
+) -> None:
+    """Train and evaluate the compact PyTorch surrogate."""
+    artifacts = train_neural_surrogate(
+        dataset_path=dataset,
+        config_path=config,
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Device: {artifacts.device}")
+    typer.echo(f"Parameters: {artifacts.parameter_count}")
+    typer.echo(f"Best epoch: {artifacts.best_epoch}")
+    typer.echo(f"Best validation loss: {artifacts.best_validation_loss:.6f}")
+    typer.echo(f"Mean test NRMSE: {artifacts.mean_test_nrmse_std:.6f}")
+    typer.echo(f"Mean test R2: {artifacts.mean_test_r2:.6f}")
+    typer.echo(f"Saved model: {artifacts.model_path}")
+    typer.echo(f"Saved summary: {artifacts.summary_path}")
+
+
 @app.command(name="compare-models")
 def compare_models(
     artifact_root: Path = typer.Option(
@@ -229,7 +280,7 @@ def evaluate_uncertainty_command(
     """Evaluate ensemble and conformal uncertainty."""
     artifacts = evaluate_uncertainty(
         dataset_path=dataset,
-        random_forest_summary_path=(random_forest_summary),
+        random_forest_summary_path=random_forest_summary,
         output_dir=output_dir,
         calibration_fraction=calibration_fraction,
     )
@@ -250,7 +301,7 @@ def train_feasibility(
         file_okay=True,
         dir_okay=False,
         readable=True,
-        help=("Path to the generated EdgeGenBench dataset."),
+        help="Path to the generated EdgeGenBench dataset.",
     ),
     output_dir: Path = typer.Option(
         Path("artifacts/feasibility_classifier"),
@@ -258,7 +309,7 @@ def train_feasibility(
         "-o",
         file_okay=False,
         dir_okay=True,
-        help=("Directory for feasibility classifier artifacts."),
+        help="Directory for feasibility classifier artifacts.",
     ),
     max_false_safe_rate: float = typer.Option(
         0.05,
@@ -272,19 +323,14 @@ def train_feasibility(
     artifacts = train_feasibility_classifier(
         dataset_path=dataset,
         output_dir=output_dir,
-        max_false_safe_rate=(max_false_safe_rate),
+        max_false_safe_rate=max_false_safe_rate,
     )
 
     typer.echo(f"Selected threshold: {artifacts.selected_threshold:.2f}")
-
     typer.echo(f"Test false-safe rate: {artifacts.false_safe_rate:.4f}")
-
     typer.echo(f"Test balanced accuracy: {artifacts.balanced_accuracy:.4f}")
-
     typer.echo(f"Test rows: {artifacts.test_rows}")
-
     typer.echo(f"Saved model: {artifacts.model_path}")
-
     typer.echo(f"Saved summary: {artifacts.summary_path}")
 
 
@@ -333,20 +379,15 @@ def optimize_designs_command(
     artifacts = optimize_designs(
         config_path=config,
         surrogate_model_path=surrogate_model,
-        feasibility_model_path=(feasibility_model),
+        feasibility_model_path=feasibility_model,
         output_dir=output_dir,
     )
 
     typer.echo(f"Candidates: {artifacts.candidate_count}")
-
     typer.echo(f"Feasible candidates: {artifacts.feasible_count}")
-
     typer.echo(f"Feasible fraction: {artifacts.feasible_fraction:.2%}")
-
     typer.echo(f"Pareto designs: {artifacts.pareto_count}")
-
     typer.echo(f"Safety threshold: {artifacts.feasibility_threshold:.2f}")
-
     typer.echo(f"Saved summary: {artifacts.summary_path}")
 
 
@@ -389,13 +430,9 @@ def validate_optimization_command(
     )
 
     typer.echo(f"Designs validated: {artifacts.design_count}")
-
     typer.echo(f"Targets validated: {artifacts.validated_target_count}")
-
     typer.echo(f"Feasibility agreement: {artifacts.feasibility_agreement_rate:.2%}")
-
     typer.echo(f"Saved metrics: {artifacts.metrics_path}")
-
     typer.echo(f"Saved summary: {artifacts.summary_path}")
 
 
@@ -432,21 +469,16 @@ def export_edge_models_command(
 ) -> None:
     """Export trained estimators to ONNX."""
     artifacts = export_edge_models(
-        surrogate_model_path=(surrogate_model),
-        feasibility_model_path=(feasibility_model),
+        surrogate_model_path=surrogate_model,
+        feasibility_model_path=feasibility_model,
         output_dir=output_dir,
     )
 
     typer.echo(f"Encoded features: {artifacts.feature_count}")
-
     typer.echo(f"Surrogate targets: {artifacts.surrogate_target_count}")
-
     typer.echo(f"Safety threshold: {artifacts.feasibility_threshold:.2f}")
-
     typer.echo(f"Surrogate ONNX: {artifacts.surrogate_onnx_path}")
-
     typer.echo(f"Feasibility ONNX: {artifacts.feasibility_onnx_path}")
-
     typer.echo(f"Metadata: {artifacts.metadata_path}")
 
 
@@ -513,22 +545,17 @@ def benchmark_edge_models_command(
     """Benchmark ONNX Runtime against Scikit-learn."""
     artifacts = benchmark_edge_models(
         dataset_path=dataset,
-        surrogate_model_path=(surrogate_model),
-        feasibility_model_path=(feasibility_model),
-        surrogate_onnx_path=(surrogate_onnx),
-        feasibility_onnx_path=(feasibility_onnx),
+        surrogate_model_path=surrogate_model,
+        feasibility_model_path=feasibility_model,
+        surrogate_onnx_path=surrogate_onnx,
+        feasibility_onnx_path=feasibility_onnx,
         metadata_path=metadata,
         output_dir=output_dir,
     )
 
     typer.echo(f"Test rows: {artifacts.test_rows}")
-
     typer.echo(f"Classifier agreement: {artifacts.classifier_agreement:.2%}")
-
     typer.echo(f"Maximum surrogate difference: {artifacts.max_surrogate_absolute_error:.6g}")
-
     typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
-
     typer.echo(f"Latency report: {artifacts.latency_path}")
-
     typer.echo(f"Summary: {artifacts.summary_path}")

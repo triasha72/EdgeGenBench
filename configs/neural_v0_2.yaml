@@ -1,0 +1,29 @@
+version: "0.2"
+
+seed: 42
+
+model:
+  hidden_dims:
+    - 64
+    - 32
+    - 16
+  activation: relu
+  dropout: 0.0
+
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  max_epochs: 500
+  early_stopping_patience: 30
+  min_delta: 0.000001
+
+normalization:
+  normalize_numeric_features: true
+  normalize_targets: true
+  fit_on_split: train
+
+device:
+  preference:
+    - mps
+    - cpu
