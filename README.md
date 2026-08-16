@@ -78,8 +78,9 @@ The current development work adds:
 - public FP32, FP16, INT8, and deployment-selection CLI commands;
 - targeted static type checking for deployment modules.
 
-Qualcomm QNN integration, Snapdragon NPU profiling, and distribution-shift
-studies remain future work.
+Qualcomm QNN integration and Snapdragon 8 Elite NPU deployment validation
+are now implemented. Qualcomm-native INT8 evaluation, broader Snapdragon
+hardware studies, and distribution-shift evaluation remain future work.
 
 ## Deployment-aware model selection
 
@@ -106,6 +107,36 @@ and provides approximately 18% lower median CPU latency than FP32 at batch
 workloads.
 
 Cross-provider timings should not be interpreted as a direct hardware ranking.
+
+## Qualcomm QNN / Snapdragon deployment
+
+EdgeGenBench now includes a validated Qualcomm QNN deployment path for the
+compact neural surrogate.
+
+The dynamic FP32 ONNX source is compiled and linked into one QNN Context
+Binary containing batch-1, batch-32, and batch-256 graphs for a Snapdragon
+8 Elite QRD.
+
+The linked deployment uses the QNN HTP backend on Hexagon v79. All nine
+profiled layers were placed on the NPU for every validated graph.
+
+| Batch | AI Hub profile latency | Peak memory | Compute units |
+|---:|---:|---:|---|
+| 1 | 38 us | 122,937,344 B | NPU: 9 |
+| 32 | 34 us | 122,888,192 B | NPU: 9 |
+| 256 | 57 us | 123,211,776 B | NPU: 9 |
+
+On all 900 held-out rows, the linked batch-1 QNN deployment retained mean R2
+of 0.996953 versus 0.996955 for the local FP32 ONNX reference. Maximum
+normalized deployment drift was 0.003636.
+
+These values are device-specific AI Hub model-profile measurements. They are
+not presented as end-to-end Android application latency or as a same-hardware
+comparison with the Mac CPU/CoreML experiments.
+
+Complete provenance and linked-graph validation are stored in:
+
+`reports/qualcomm_qnn_v0_1.json`
 
 ## Benchmark problem
 

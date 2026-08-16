@@ -47,6 +47,7 @@ jobs:
           mypy src/edgegenbench/deployment/neural_int8.py
           mypy src/edgegenbench/deployment/neural_int8_benchmark.py
           mypy src/edgegenbench/cli.py
+          mypy src/edgegenbench/deployment/qualcomm_ai_hub.py
 
       - name: Run tests
         run: |

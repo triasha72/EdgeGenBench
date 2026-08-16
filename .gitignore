@@ -20,12 +20,14 @@ data/processed/*
 !data/processed/.gitkeep
 reports/*
 !reports/.gitkeep
+!reports/qualcomm_qnn_v0_1.json
 
 # Deployment artifacts
 *.onnx
 *.joblib
 *.pt
 *.pth
+
 # Local backup files
 backups/
 *.bak

@@ -450,46 +450,95 @@ and should not be interpreted as a direct hardware or precision-only ranking.
 
 ## Milestone 7 — Qualcomm AI Hub / QNN
 
-**Status: NEXT**
+**Status: COMPLETE / UNRELEASED**
 
-Goals:
+### Goal
 
-- establish a reproducible path from validated ONNX to Qualcomm tooling;
-- document model and operator compatibility;
-- compile or convert using supported QNN tooling;
-- record target SoC and runtime;
-- separate host-side preprocessing from accelerator execution;
-- compare numerical parity against the validated FP32 reference.
+Establish a reproducible path from the validated neural ONNX artifact to
+Qualcomm QNN deployment on supported Snapdragon hardware.
 
-Deliverables:
+### Implemented
 
-- conversion script or documented reproducible command;
-- target-device configuration;
-- compatibility report;
-- conversion logs;
-- parity report;
-- device-specific latency report.
+- Qualcomm AI Hub dependency isolation through the `qualcomm` package extra;
+- authenticated hosted-device discovery;
+- Snapdragon 8 Elite QRD target selection;
+- source ONNX validation and SHA-256 provenance;
+- static batch-1, batch-32, and batch-256 QNN compilation;
+- HTP backend validation;
+- Hexagon v79 metadata validation;
+- QAIRT version provenance;
+- QNN Context Binary provenance;
+- hosted Snapdragon profile jobs;
+- compute-unit inspection;
+- all-nine-layer NPU placement;
+- numerical runtime-drift evaluation;
+- 900-row held-out inference validation;
+- modern compile-and-link deployment workflow;
+- one linked QNN Context Binary containing batch-1, batch-32, and batch-256
+  graphs;
+- graph-selective profile and inference validation;
+- offline profile/parity helpers and unit tests;
+- canonical machine-readable Qualcomm evidence report.
 
-No Qualcomm accelerator claim should be made before supported tooling and
-hardware are used.
+### Linked deployment results
+
+| Batch | AI Hub profile latency | Peak inference memory | Compute units |
+|---:|---:|---:|---|
+| 1 | 38 us | 122,937,344 B | NPU: 9 |
+| 32 | 34 us | 122,888,192 B | NPU: 9 |
+| 256 | 57 us | 123,211,776 B | NPU: 9 |
+
+### Held-out validation
+
+The linked batch-1 graph was evaluated on all 900 held-out rows.
+
+| Metric | Local FP32 ONNX | Snapdragon QNN |
+|---|---:|---:|
+| Mean R2 | 0.996955004 | 0.996953249 |
+| Mean NRMSE | 0.050432628 | 0.050444571 |
+
+Maximum normalized deployment drift was 0.003636.
+
+### Conclusion
+
+The compact neural surrogate has been compiled, linked, profiled, and
+executed through QNN HTP on supported Snapdragon hardware with all profiled
+layers placed on the NPU and essentially unchanged held-out predictive
+quality.
+
+AI Hub profile measurements are hardware-contextual and are not treated as
+end-to-end Android latency or same-hardware comparisons with Mac CPU/CoreML
+measurements.
 
 ---
 
-## Milestone 8 — Snapdragon NPU profiling
+## Milestone 8 — Snapdragon NPU optimization
 
-**Status: PLANNED**
+**Status: NEXT**
 
-Measure on supported Snapdragon hardware:
+### Goal
 
-- warm-start latency;
-- repeated batch latency;
-- throughput;
-- memory footprint when available;
-- power or energy proxy where tooling supports it;
-- fallback operators;
-- sustained versus burst behavior.
+Evaluate whether Qualcomm-native reduced-precision deployment improves the
+Snapdragon NPU accuracy-size-latency tradeoff relative to the validated
+FP32-I/O / HTP-FP16-relaxed baseline.
 
-No NPU performance claim should be made before a real supported-device run.
+### Planned
+
+- Qualcomm-native INT8/QDQ post-training quantization;
+- training-only calibration;
+- batch-1, batch-32, and batch-256 INT8 graph variants;
+- linked multi-graph INT8 QNN deployment;
+- NPU placement verification;
+- held-out predictive-quality evaluation;
+- normalized runtime-drift evaluation;
+- serialized QNN artifact-size comparison;
+- profile-latency comparison;
+- runtime-memory comparison;
+- derived model-throughput comparison;
+- repeated-profile variability study where practical.
+
+No INT8 Snapdragon performance claim will be made until measured device
+evidence exists.
 
 ---
 

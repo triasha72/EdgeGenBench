@@ -48,6 +48,9 @@ edge = [
 neural = [
   "torch>=2.4"
 ]
+qualcomm = [
+  "qai-hub>=0.54,<0.55"
+]
 
 [project.scripts]
 edgegenbench = "edgegenbench.cli:app"
