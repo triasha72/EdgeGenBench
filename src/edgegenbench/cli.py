@@ -9,6 +9,12 @@ from edgegenbench.data.generate import generate_dataset
 from edgegenbench.deployment.benchmark import (
     benchmark_edge_models,
 )
+from edgegenbench.deployment.neural_benchmark import (
+    benchmark_neural_onnx,
+)
+from edgegenbench.deployment.neural_onnx_export import (
+    export_neural_surrogate_onnx,
+)
 from edgegenbench.deployment.onnx_export import (
     export_edge_models,
 )
@@ -556,6 +562,161 @@ def benchmark_edge_models_command(
     typer.echo(f"Test rows: {artifacts.test_rows}")
     typer.echo(f"Classifier agreement: {artifacts.classifier_agreement:.2%}")
     typer.echo(f"Maximum surrogate difference: {artifacts.max_surrogate_absolute_error:.6g}")
+    typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
+    typer.echo(f"Latency report: {artifacts.latency_path}")
+    typer.echo(f"Summary: {artifacts.summary_path}")
+
+
+@app.command(name="export-neural-onnx")
+def export_neural_onnx_command(
+    model: Path = typer.Option(
+        Path("artifacts/neural_surrogate/model.pt"),
+        "--model",
+        "-m",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Trained neural-surrogate checkpoint.",
+    ),
+    preprocessing: Path = typer.Option(
+        Path("artifacts/neural_surrogate/preprocessing.npz"),
+        "--preprocessing",
+        "-p",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Frozen neural preprocessing artifact.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_onnx"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for neural ONNX export artifacts.",
+    ),
+    opset: int = typer.Option(
+        18,
+        "--opset",
+        min=1,
+        help="Target ONNX opset.",
+    ),
+) -> None:
+    """Export the compact PyTorch surrogate to ONNX."""
+    artifacts = export_neural_surrogate_onnx(
+        model_path=model,
+        preprocessing_path=preprocessing,
+        output_dir=output_dir,
+        target_opset=opset,
+    )
+
+    typer.echo(f"Input dimension: {artifacts.input_dim}")
+    typer.echo(f"Output dimension: {artifacts.output_dim}")
+    typer.echo(f"ONNX opset: {artifacts.target_opset}")
+    typer.echo(f"ONNX size: {artifacts.onnx_size_bytes} bytes")
+    typer.echo(f"ONNX model: {artifacts.onnx_path}")
+    typer.echo(f"Metadata: {artifacts.metadata_path}")
+
+
+@app.command(name="benchmark-neural-onnx")
+def benchmark_neural_onnx_command(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Benchmark dataset.",
+    ),
+    model: Path = typer.Option(
+        Path("artifacts/neural_surrogate/model.pt"),
+        "--model",
+        "-m",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Trained neural-surrogate checkpoint.",
+    ),
+    preprocessing: Path = typer.Option(
+        Path("artifacts/neural_surrogate/preprocessing.npz"),
+        "--preprocessing",
+        "-p",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Frozen neural preprocessing artifact.",
+    ),
+    onnx_model: Path = typer.Option(
+        Path("artifacts/neural_onnx/neural_surrogate.onnx"),
+        "--onnx-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Exported neural ONNX graph.",
+    ),
+    metadata: Path = typer.Option(
+        Path("artifacts/neural_onnx/metadata.json"),
+        "--metadata",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Neural ONNX export metadata.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_onnx_benchmark"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for neural ONNX benchmark artifacts.",
+    ),
+    repeats: int = typer.Option(
+        500,
+        "--repeats",
+        min=1,
+        help=("Measured latency repetitions per runtime and batch size."),
+    ),
+    warmups: int = typer.Option(
+        50,
+        "--warmups",
+        min=0,
+        help=("Warmup iterations per runtime and batch size."),
+    ),
+) -> None:
+    """Benchmark PyTorch CPU against ONNX Runtime CPU."""
+    artifacts = benchmark_neural_onnx(
+        dataset_path=dataset,
+        model_path=model,
+        preprocessing_path=preprocessing,
+        onnx_model_path=onnx_model,
+        metadata_path=metadata,
+        output_dir=output_dir,
+        batch_sizes=(
+            1,
+            32,
+            256,
+        ),
+        repeats=repeats,
+        warmups=warmups,
+    )
+
+    typer.echo(f"Test rows: {artifacts.test_rows}")
+    typer.echo(f"Numerically equivalent: {artifacts.normalized_equivalent}")
+    typer.echo(
+        f"Normalized mean absolute difference: {artifacts.normalized_mean_absolute_difference:.10e}"
+    )
+    typer.echo(
+        "Normalized maximum absolute difference: "
+        f"{artifacts.normalized_max_absolute_difference:.10e}"
+    )
     typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
     typer.echo(f"Latency report: {artifacts.latency_path}")
     typer.echo(f"Summary: {artifacts.summary_path}")
