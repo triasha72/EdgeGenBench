@@ -18,6 +18,12 @@ from edgegenbench.deployment.neural_fp16 import (
 from edgegenbench.deployment.neural_fp16_benchmark import (
     benchmark_neural_fp16,
 )
+from edgegenbench.deployment.neural_int8 import (
+    export_neural_surrogate_int8,
+)
+from edgegenbench.deployment.neural_int8_benchmark import (
+    benchmark_neural_int8,
+)
 from edgegenbench.deployment.neural_onnx_export import (
     export_neural_surrogate_onnx,
 )
@@ -871,7 +877,6 @@ def benchmark_neural_fp16_command(
         max_mean_normalized_drift=max_mean_normalized_drift,
         max_normalized_drift=max_normalized_drift,
     )
-
     typer.echo(f"Test rows: {artifacts.test_rows}")
     typer.echo(f"Mean normalized FP16 drift: {artifacts.normalized_mean_absolute_difference:.10e}")
     typer.echo(
@@ -881,6 +886,200 @@ def benchmark_neural_fp16_command(
     typer.echo(f"Maximum drift within limit: {artifacts.max_drift_within_limit}")
     typer.echo(f"FP16 mean NRMSE: {artifacts.fp16_mean_nrmse_std:.10f}")
     typer.echo(f"FP16 mean R2: {artifacts.fp16_mean_r2:.10f}")
+    typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
+    typer.echo(f"Task metrics: {artifacts.task_metrics_path}")
+    typer.echo(f"Latency runs: {artifacts.latency_runs_path}")
+    typer.echo(f"Latency summary: {artifacts.latency_summary_path}")
+    typer.echo(f"Summary: {artifacts.summary_path}")
+
+
+@app.command(name="export-neural-int8")
+def export_neural_int8_command(
+    fp32_model: Path = typer.Option(
+        Path("artifacts/neural_onnx/neural_surrogate.onnx"),
+        "--fp32-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Canonical dynamic FP32 neural ONNX graph."),
+    ),
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Dataset containing the training split used for INT8 calibration."),
+    ),
+    preprocessing: Path = typer.Option(
+        Path("artifacts/neural_surrogate/preprocessing.npz"),
+        "--preprocessing",
+        "-p",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Frozen neural preprocessing artifact."),
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_int8"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help=("Directory for mixed-precision INT8 neural ONNX artifacts."),
+    ),
+) -> None:
+    """Export the validated mixed-precision INT8/FP32 neural ONNX model."""
+    artifacts = export_neural_surrogate_int8(
+        fp32_model_path=(fp32_model),
+        dataset_path=(dataset),
+        preprocessing_path=(preprocessing),
+        output_dir=(output_dir),
+    )
+
+    typer.echo(f"Input dimension: {artifacts.input_dim}")
+    typer.echo(f"Output dimension: {artifacts.output_dim}")
+    typer.echo(f"Calibration rows: {artifacts.calibration_rows}")
+    typer.echo(f"FP32 model size: {artifacts.fp32_model_size_bytes} bytes")
+    typer.echo(f"INT8 model size: {artifacts.int8_model_size_bytes} bytes")
+    typer.echo(f"Model-size reduction: {artifacts.size_reduction_percent:.2f}%")
+    typer.echo(f"INT8 initializer count: {artifacts.int8_initializer_count}")
+    typer.echo(f"INT32 initializer count: {artifacts.int32_initializer_count}")
+    typer.echo(f"Excluded FP32 nodes: {', '.join(artifacts.excluded_nodes)}")
+    typer.echo(f"INT8 model: {artifacts.onnx_path}")
+    typer.echo(f"Metadata: {artifacts.metadata_path}")
+
+
+@app.command(name="benchmark-neural-int8")
+def benchmark_neural_int8_command(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Benchmark dataset containing the neural test split."),
+    ),
+    preprocessing: Path = typer.Option(
+        Path("artifacts/neural_surrogate/preprocessing.npz"),
+        "--preprocessing",
+        "-p",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Frozen neural preprocessing artifact."),
+    ),
+    fp32_model: Path = typer.Option(
+        Path("artifacts/neural_onnx/neural_surrogate.onnx"),
+        "--fp32-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Canonical dynamic FP32 neural ONNX graph."),
+    ),
+    int8_model: Path = typer.Option(
+        Path("artifacts/neural_int8/neural_surrogate_int8.onnx"),
+        "--int8-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help=("Mixed-precision INT8/FP32 neural ONNX graph."),
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_int8_benchmark"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help=("Directory for INT8 quality and CPU benchmark artifacts."),
+    ),
+    runs: int = typer.Option(
+        5,
+        "--runs",
+        min=1,
+        help=("Independent paired FP32/INT8 latency runs."),
+    ),
+    repeats: int = typer.Option(
+        500,
+        "--repeats",
+        min=1,
+        help=("Measured latency repetitions per precision and batch size."),
+    ),
+    warmups: int = typer.Option(
+        50,
+        "--warmups",
+        min=0,
+        help=("Warmup iterations per precision and batch size."),
+    ),
+    max_mean_normalized_drift: float = typer.Option(
+        0.015,
+        "--max-mean-normalized-drift",
+        min=0.0,
+        help=("Regression ceiling for mean normalized INT8 drift."),
+    ),
+    max_p99_normalized_drift: float = typer.Option(
+        0.040,
+        "--max-p99-normalized-drift",
+        min=0.0,
+        help=("Regression ceiling for P99 normalized INT8 drift."),
+    ),
+    max_p999_normalized_drift: float = typer.Option(
+        0.060,
+        "--max-p999-normalized-drift",
+        min=0.0,
+        help=("Regression ceiling for P99.9 normalized INT8 drift."),
+    ),
+    max_normalized_drift: float = typer.Option(
+        0.080,
+        "--max-normalized-drift",
+        min=0.0,
+        help=("Regression ceiling for maximum normalized INT8 drift."),
+    ),
+) -> None:
+    """Benchmark FP32 and mixed-precision INT8 neural ONNX models on CPU."""
+    artifacts = benchmark_neural_int8(
+        dataset_path=(dataset),
+        preprocessing_path=(preprocessing),
+        fp32_model_path=(fp32_model),
+        int8_model_path=(int8_model),
+        output_dir=(output_dir),
+        batch_sizes=(
+            1,
+            32,
+            256,
+        ),
+        runs=runs,
+        repeats=repeats,
+        warmups=warmups,
+        max_mean_normalized_drift=(max_mean_normalized_drift),
+        max_p99_normalized_drift=(max_p99_normalized_drift),
+        max_p999_normalized_drift=(max_p999_normalized_drift),
+        max_normalized_drift=(max_normalized_drift),
+    )
+
+    typer.echo(f"Test rows: {artifacts.test_rows}")
+    typer.echo(f"Mean normalized INT8 drift: {artifacts.normalized_mean_absolute_difference:.10e}")
+    typer.echo(f"P95 normalized INT8 drift: {artifacts.normalized_p95_absolute_difference:.10e}")
+    typer.echo(f"P99 normalized INT8 drift: {artifacts.normalized_p99_absolute_difference:.10e}")
+    typer.echo(f"P99.9 normalized INT8 drift: {artifacts.normalized_p999_absolute_difference:.10e}")
+    typer.echo(
+        f"Maximum normalized INT8 drift: {artifacts.normalized_max_absolute_difference:.10e}"
+    )
+    typer.echo(f"Mean drift within limit: {artifacts.mean_drift_within_limit}")
+    typer.echo(f"P99 drift within limit: {artifacts.p99_drift_within_limit}")
+    typer.echo(f"P99.9 drift within limit: {artifacts.p999_drift_within_limit}")
+    typer.echo(f"Maximum drift within limit: {artifacts.max_drift_within_limit}")
+    typer.echo(f"INT8 mean NRMSE: {artifacts.int8_mean_nrmse_std:.10f}")
+    typer.echo(f"INT8 mean R2: {artifacts.int8_mean_r2:.10f}")
     typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
     typer.echo(f"Task metrics: {artifacts.task_metrics_path}")
     typer.echo(f"Latency runs: {artifacts.latency_runs_path}")

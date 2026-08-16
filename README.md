@@ -26,8 +26,11 @@ The project combines:
 - classical and neural ONNX deployment;
 - numerical-equivalence testing;
 - FP16 reduced-precision evaluation;
+- mixed-precision INT8/FP32 static-QDQ deployment;
+- quantization calibration and drift analysis;
 - CPU and CoreML execution-provider benchmarking;
-- reproducible testing and continuous integration.
+- repeated latency benchmarking;
+- reproducible testing, type checking, and continuous integration.
 
 EdgeGenBench uses synthetic or public information only. It does not contain
 proprietary aircraft-manufacturer data, software, or design information.
@@ -58,10 +61,18 @@ The current development work adds:
 - held-out provider-drift and precision-drift analysis;
 - FP16 predictive-quality regression guards;
 - repeated FP32 versus FP16 CoreML benchmarking;
-- public FP32 and FP16 deployment CLI commands.
+- static-QDQ INT8 quantization;
+- per-channel QInt8 weight quantization;
+- training-only MinMax calibration;
+- validation-selected FP32 output-head retention;
+- mixed INT8/FP32 graph validation;
+- held-out INT8 drift and predictive-quality evaluation;
+- repeated FP32 versus mixed-INT8 ONNX Runtime CPU benchmarking;
+- public FP32, FP16, and INT8 deployment CLI commands;
+- targeted static type checking for deployment modules.
 
-INT8, Qualcomm QNN, Snapdragon NPU profiling, and distribution-shift studies
-remain future work.
+Qualcomm QNN, Snapdragon NPU profiling, unified deployment-policy tooling, and
+distribution-shift studies remain future work.
 
 ## Benchmark problem
 
@@ -117,6 +128,10 @@ approximately 32.6%.
 
 Neural preprocessing statistics are fitted **only on the training partition**.
 Validation and test rows reuse the frozen training statistics.
+
+The production INT8 calibration path also uses **only the 4,200 training
+rows**. Validation and held-out test rows are never used to fit quantization
+calibration ranges.
 
 ## Compact neural surrogate
 
@@ -244,7 +259,7 @@ Three-run aggregate results:
 | 32 | 0.018427 ms | **0.007984 ms** | **2.385×** | 2.078×–2.404× |
 | 256 | **0.030841 ms** | 0.033574 ms | 0.919× | 0.860×–1.079× |
 
-A ratio greater than 1 means lower ONNX Runtime mean latency.
+A ratio greater than 1 means lower ONNX Runtime latency.
 
 The defensible conclusion is:
 
@@ -294,7 +309,7 @@ FP32 CPU ↔ FP32 CoreML provider drift was substantially smaller:
 | Mean normalized provider difference | 1.4848e-07 |
 | Maximum normalized provider difference | 1.4305e-06 |
 
-This separates ordinary provider-level numerical variation from the much larger,
+This separates ordinary provider-level numerical variation from the larger,
 but still bounded, FP16 precision effect.
 
 ### FP16 predictive quality
@@ -304,8 +319,8 @@ but still bounded, FP16 precision effect.
 | Mean test NRMSE | 0.050433 | **0.050473** |
 | Mean test R² | 0.996955 | **0.996954** |
 
-FP16 therefore preserves essentially the same held-out predictive quality while
-reducing serialized model size.
+FP16 preserves essentially the same held-out predictive quality while reducing
+serialized model size.
 
 Target-level FP16 results:
 
@@ -365,6 +380,197 @@ execution.
 Detailed FP16 results are recorded in
 [`docs/neural_fp16_results.md`](docs/neural_fp16_results.md).
 
+## Mixed-precision INT8/FP32 neural ONNX deployment
+
+The FP32 neural ONNX graph was also evaluated using static QDQ quantization.
+
+Initial experiments showed that a smaller calibration subset could miss
+activation tails and clip the estimated-takeoff-mass output. The final
+configuration therefore uses all 4,200 training rows for calibration.
+
+Validation-based experiments also showed that retaining the final output
+`Gemm` in FP32 improved overall drift and predictive quality relative to
+quantizing that layer.
+
+The production configuration is:
+
+```text
+Quantization format      Static QDQ
+Activation type          QInt8
+Weight type              QInt8
+Weight granularity       Per-channel
+Calibration method       MinMax
+Calibration split        Train only
+Calibration rows         4,200
+Excluded node            node_linear_3
+Output head precision    FP32
+External input precision FP32
+External output precision FP32
+Reference provider       CPUExecutionProvider
+```
+
+This is therefore a **mixed INT8/FP32 model**, not a fully INT8 graph.
+
+### INT8 production artifact
+
+| Property | FP32 | Mixed INT8/FP32 |
+|---|---:|---:|
+| Input width | 10 | 10 |
+| Output width | 6 | 6 |
+| Dynamic batch | Yes | Yes |
+| External input precision | FP32 | FP32 |
+| External output precision | FP32 | FP32 |
+| INT8 initializers | — | 10 |
+| INT32 initializers | — | 6 |
+| Serialized ONNX size | 25,420 B | **16,977 B** |
+
+The selected deployment reduces serialized ONNX size by **33.21%** relative to
+the FP32 graph.
+
+It is also approximately 11.7% smaller than the 19,221-byte FP16 ONNX
+artifact.
+
+### Production graph structure
+
+The validated production graph contains:
+
+```text
+DequantizeLinear: 10
+Gemm:              4
+QuantizeLinear:    4
+
+FLOAT initializers: 12
+INT8 initializers:  10
+INT32 initializers: 6
+```
+
+The output head remains:
+
+```text
+node_linear_3       Gemm
+network.6.weight    FLOAT
+network.6.bias      FLOAT
+```
+
+### Production/probe reproducibility
+
+The production exporter reproduced the validation-selected experimental graph
+exactly across all 900 held-out test rows.
+
+| Metric | Result |
+|---|---:|
+| Test rows | 900 |
+| Mean production/probe absolute difference | **0.0** |
+| Maximum production/probe absolute difference | **0.0** |
+| `allclose` | **True** |
+
+### Held-out quantization drift
+
+All 900 test rows were evaluated using the same frozen preprocessing and
+ONNX Runtime CPU execution.
+
+| Metric | Result | Regression ceiling |
+|---|---:|---:|
+| Mean normalized drift | **0.008028** | 0.015 |
+| P95 normalized drift | **0.020127** | — |
+| P99 normalized drift | **0.027546** | 0.040 |
+| P99.9 normalized drift | **0.041373** | 0.060 |
+| Maximum normalized drift | **0.058695** | 0.080 |
+| Mean guard | **PASS** | — |
+| P99 guard | **PASS** | — |
+| P99.9 guard | **PASS** | — |
+| Maximum guard | **PASS** | — |
+
+### Target-level mixed-precision INT8 drift
+
+| Target | Mean normalized drift | P99 normalized drift | Maximum normalized drift |
+|---|---:|---:|---:|
+| Estimated takeoff mass | 0.010334 | 0.036256 | 0.058695 |
+| Mission energy | 0.006909 | 0.021749 | 0.030003 |
+| Energy per passenger-km | 0.008195 | 0.027552 | 0.039312 |
+| Lifecycle-emissions proxy | 0.007653 | 0.026186 | 0.033258 |
+| Operating-cost proxy | 0.007199 | 0.023455 | 0.032798 |
+| Noise proxy | 0.007877 | 0.025629 | 0.030175 |
+
+### Predictive quality
+
+| Metric | FP32 ORT reference | Mixed INT8/FP32 |
+|---|---:|---:|
+| Mean test NRMSE | 0.050433 | **0.051566** |
+| Mean test R² | 0.996955 | **0.996855** |
+
+The mixed-precision model therefore retains strong held-out predictive quality
+while reducing serialized model size.
+
+Target-level metrics:
+
+| Target | FP32 NRMSE | INT8 NRMSE | FP32 R² | INT8 R² |
+|---|---:|---:|---:|---:|
+| Estimated takeoff mass | 0.073473 | 0.074670 | 0.994602 | 0.994424 |
+| Mission energy | 0.048346 | 0.048787 | 0.997663 | 0.997620 |
+| Energy per passenger-km | 0.083380 | 0.084665 | 0.993048 | 0.992832 |
+| Lifecycle-emissions proxy | 0.035690 | 0.036422 | 0.998726 | 0.998673 |
+| Operating-cost proxy | 0.045074 | 0.044985 | 0.997968 | 0.997976 |
+| Noise proxy | 0.016633 | 0.019869 | 0.999723 | 0.999605 |
+
+### FP32 versus mixed-INT8 ONNX Runtime CPU benchmark
+
+The production latency benchmark uses:
+
+```text
+Provider CPUExecutionProvider
+Runs     5
+Repeats  500
+Warmups  50
+Batches  1, 32, 256
+```
+
+The same preprocessed FP32 inputs are used for both models and preprocessing is
+outside the timed region.
+
+Median results:
+
+| Batch | FP32 median | Mixed INT8 median | Median FP32/INT8 ratio | INT8 faster runs |
+|---:|---:|---:|---:|---:|
+| 1 | **0.004613 ms** | 0.005370 ms | 0.859× | 0/5 |
+| 32 | **0.008414 ms** | 0.008715 ms | 0.973× | 0/5 |
+| 256 | 0.037539 ms | **0.030682 ms** | **1.232×** | **5/5** |
+
+A ratio above 1 indicates lower INT8 latency.
+
+Interpretation:
+
+- batch 1 is slower under mixed INT8/FP32 inference;
+- batch 32 is close to parity but remains slightly slower under INT8;
+- batch 256 consistently benefits from INT8 in this benchmark;
+- batch-256 median latency is approximately **18% lower** under the
+  mixed-precision model;
+- INT8 was faster in all five batch-256 runs;
+- the largest individual speedup should not be treated as representative
+  because one FP32 run contained a larger latency excursion;
+- quantization is therefore not presented as a universal latency optimization.
+
+Detailed INT8 results are recorded in
+[`docs/neural_int8_results.md`](docs/neural_int8_results.md).
+
+## Neural deployment comparison
+
+The three validated neural ONNX deployment configurations expose different
+size, precision, provider, and latency tradeoffs.
+
+| Deployment | Execution path | Mean NRMSE | Mean R² | ONNX size | Observed latency behavior |
+|---|---|---:|---:|---:|---|
+| FP32 ONNX | ORT CPU | 0.050433 | 0.996955 | 25,420 B | Reference |
+| FP16 ONNX | ORT CoreML path | 0.050473 | 0.996954 | 19,221 B | B1/B32 near parity; B256 slower |
+| Mixed INT8/FP32 QDQ | ORT CPU | 0.051566 | 0.996855 | **16,977 B** | B1 slower; B32 near parity; B256 ~18% lower median latency |
+
+These are not direct cross-provider speed rankings. FP16 was evaluated through
+the tested CoreML execution path, while the INT8 comparison is an ONNX Runtime
+CPU benchmark.
+
+The appropriate deployment choice depends on workload and hardware rather than
+a single universal precision winner.
+
 ## v0.1 scientific-ML results
 
 Version 0.1 established the classical surrogate, uncertainty, optimization,
@@ -419,22 +625,28 @@ Synthetic physics model
         v
 deterministic train / validation / test split
         |
-        +-----------------------------------+
-        |                                   |
-        v                                   v
-Classical branch                       Neural branch
-        |                                   |
-Ridge / RF / HGB                      compact PyTorch MLP
-        |                                   |
-uncertainty / feasibility             FP32 ONNX
-        |                                   |
-optimization                          ORT CPU evaluation
-        |                                   |
-physics validation                    FP16 ONNX
-                                            |
-                                      static CoreML models
-                                            |
-                                precision + latency evaluation
+        +------------------------------------------+
+        |                                          |
+        v                                          v
+Classical branch                              Neural branch
+        |                                          |
+Ridge / RF / HGB                         compact PyTorch MLP
+        |                                          |
+uncertainty / feasibility                       FP32 ONNX
+        |                                          |
+optimization                         +-------------+-------------+
+        |                            |                           |
+physics validation                   v                           v
+                                  ORT CPU                 reduced precision
+                                                               |
+                                              +----------------+----------------+
+                                              |                                 |
+                                              v                                 v
+                                           FP16 ONNX                    mixed INT8/FP32
+                                              |                                 |
+                                        CoreML study                       ORT CPU
+                                              |                                 |
+                                      precision + latency             drift + latency
 ```
 
 ## Installation
@@ -452,6 +664,8 @@ conda activate edgegenbench-py312
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev,edge,neural]"
 ```
+
+The `dev` extra provides pytest, Ruff, and mypy.
 
 The `edge` extra includes ONNX, ONNX Runtime, ONNX Script,
 `onnxconverter-common`, and `skl2onnx`.
@@ -534,6 +748,37 @@ edgegenbench benchmark-neural-fp16 \
 The CoreML benchmark requires an ONNX Runtime build exposing
 `CoreMLExecutionProvider`.
 
+### Export mixed-precision INT8/FP32 ONNX
+
+```bash
+edgegenbench export-neural-int8 \
+  --fp32-model artifacts/neural_onnx/neural_surrogate.onnx \
+  --dataset data/raw/edgegenbench_v0_1.csv \
+  --preprocessing artifacts/neural_surrogate/preprocessing.npz \
+  --output-dir artifacts/neural_int8
+```
+
+The exporter uses all 4,200 training rows for MinMax calibration and retains
+the validation-selected final `Gemm` output head in FP32.
+
+### Benchmark FP32 versus mixed INT8/FP32 on CPU
+
+```bash
+edgegenbench benchmark-neural-int8 \
+  --dataset data/raw/edgegenbench_v0_1.csv \
+  --preprocessing artifacts/neural_surrogate/preprocessing.npz \
+  --fp32-model artifacts/neural_onnx/neural_surrogate.onnx \
+  --int8-model artifacts/neural_int8/neural_surrogate_int8.onnx \
+  --output-dir artifacts/neural_int8_benchmark \
+  --runs 5 \
+  --repeats 500 \
+  --warmups 50 \
+  --max-mean-normalized-drift 0.015 \
+  --max-p99-normalized-drift 0.040 \
+  --max-p999-normalized-drift 0.060 \
+  --max-normalized-drift 0.080
+```
+
 ## Generated neural artifacts
 
 Training:
@@ -583,6 +828,25 @@ artifacts/neural_fp16_benchmark/
     └── fp16_batch256.onnx
 ```
 
+Mixed INT8/FP32 ONNX:
+
+```text
+artifacts/neural_int8/
+├── metadata.json
+└── neural_surrogate_int8.onnx
+```
+
+INT8 production benchmark:
+
+```text
+artifacts/neural_int8_benchmark/
+├── equivalence.csv
+├── task_metrics.csv
+├── latency_runs.csv
+├── latency_summary.csv
+└── summary.json
+```
+
 Generated benchmark artifacts are intentionally ignored by Git and are
 reproducible from source.
 
@@ -601,15 +865,29 @@ The neural deployment workflow is covered by:
 - static-batch specialization tests;
 - FP16 drift-regression tests;
 - CoreML integration tests when the provider is available;
-- CLI registration and parser-level option tests.
+- mixed-precision INT8 export tests;
+- training-only INT8 calibration checks;
+- QDQ graph-structure tests;
+- FP32 output-head retention tests;
+- dynamic-batch INT8 runtime tests;
+- INT8 drift-regression tests;
+- repeated FP32/INT8 CPU benchmark tests;
+- CLI registration and parser-level option tests;
+- targeted mypy checks for the deployment implementation.
 
 Local validation includes:
 
 ```bash
 ruff format --check .
 ruff check .
+
+mypy src/edgegenbench/deployment/neural_int8.py
+mypy src/edgegenbench/deployment/neural_int8_benchmark.py
+mypy src/edgegenbench/cli.py
+
 pytest -q tests/neural
 pytest -q
+
 python -m pip check
 git diff --check
 ```
@@ -625,13 +903,17 @@ git diff --check
 - CoreML `MLComputeUnits=ALL` does not prove exclusive ANE execution.
 - FP16 reduced serialized size but did not provide a universal latency
   improvement in the measured workload.
-- INT8 deployment has not yet been validated.
+- Mixed INT8/FP32 reduced serialized size and improved batch-256 CPU latency,
+  but was slower at batch 1 and slightly slower at batch 32.
+- The INT8 benchmark validates ONNX Runtime CPU behavior only; it does not
+  establish Qualcomm QNN or NPU performance.
 - Qualcomm QNN and Snapdragon NPU execution have not yet been validated.
+- Distribution-shift and extrapolation robustness remain future work.
 
 ## Roadmap
 
-The next reduced-precision milestone is INT8 quantization, followed by unified
-precision/runtime comparison and hardware-specific Qualcomm QNN / Snapdragon
-profiling.
+The next deployment milestone is a unified precision/runtime decision layer,
+followed by Qualcomm AI Hub / QNN integration and supported-device Snapdragon
+NPU profiling.
 
 See [`ROADMAP.md`](ROADMAP.md) for the detailed progression.

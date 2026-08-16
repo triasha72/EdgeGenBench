@@ -33,15 +33,41 @@ The project uses semantic versioning for public releases.
 - FP16 numerical-drift regression guardrails
 - Five-run paired FP32-versus-FP16 CoreML benchmarking
 - Batch-1, batch-32, and batch-256 FP16 deployment benchmarks
+- Static-QDQ mixed INT8/FP32 neural ONNX export
+- QInt8 activation quantization
+- Per-channel QInt8 weight quantization
+- Training-only MinMax INT8 calibration
+- Full 4,200-row training calibration
+- Validation-based mixed-precision INT8 candidate selection
+- FP32 output-head retention for `node_linear_3`
+- INT8/FP32 ONNX graph-structure validation
+- INT8 and INT32 initializer validation
+- FP32 external I/O validation for the mixed-precision model
+- Dynamic-batch validation for the mixed-precision model
+- Production-versus-probe INT8 reproducibility validation
+- Held-out INT8 drift reporting
+- P95, P99, P99.9, and maximum quantization-drift reporting
+- INT8 quantization-drift regression guardrails
+- Per-target physical-unit INT8 drift reporting
+- Mixed INT8/FP32 held-out task metrics
+- Five-run paired FP32-versus-INT8 ONNX Runtime CPU benchmarking
+- Batch-1, batch-32, and batch-256 INT8 CPU deployment benchmarks
 - Public `export-neural-onnx` CLI command
 - Public `benchmark-neural-onnx` CLI command
 - Public `export-neural-fp16` CLI command
 - Public `benchmark-neural-fp16` CLI command
-- Parser-level tests for long FP16 CLI options
-- Neural ONNX export, inference, benchmark, FP16, and CLI tests
+- Public `export-neural-int8` CLI command
+- Public `benchmark-neural-int8` CLI command
+- Parser-level tests for long FP16 and INT8 CLI options
+- Neural ONNX export, inference, benchmark, FP16, INT8, and CLI tests
 - Neural FP32 ONNX deployment-results documentation
 - Neural FP16 deployment-results documentation
+- Neural mixed-precision INT8 deployment-results documentation
+- `mypy` development dependency
+- Targeted mypy configuration for third-party runtime libraries
+- Targeted static type checking for the INT8 exporter, INT8 benchmark, and CLI
 - Updated deployment roadmap
+- Updated FP32 / FP16 / mixed-INT8 deployment comparison
 
 ### Corrected
 
@@ -50,6 +76,14 @@ The project uses semantic versioning for public releases.
 - PyTorch timing now executes under one outer `torch.inference_mode()` context.
 - Repeated PyTorch CPU versus ONNX Runtime CPU performance claims were
   regenerated using the corrected methodology.
+- Replaced the initial 512-row INT8 calibration subset after identifying
+  activation-range saturation in held-out estimated-takeoff-mass predictions.
+- INT8 calibration now uses all 4,200 training rows and does not use validation
+  or test rows.
+- Rejected fully quantizing the final output `Gemm` after validation showed a
+  stronger overall drift/quality tradeoff when the output head remained FP32.
+- INT8 performance language now reports batch-dependent behavior rather than a
+  universal quantization speedup.
 
 ### Validated — FP32 neural ONNX
 
@@ -98,13 +132,71 @@ The project uses semantic versioning for public releases.
 - FP16 was faster in 0 of 5 batch-256 runs.
 - FP16 preserved predictive quality while reducing serialized size, but did not
   provide a universal latency improvement on the tested CoreML configuration.
+
+### Validated — mixed INT8/FP32 neural ONNX
+
+- Quantization format: static QDQ
+- Activation type: QInt8
+- Weight type: QInt8
+- Weight granularity: per-channel
+- Calibration method: MinMax
+- Calibration split: training only
+- Calibration rows: 4,200
+- Validation-selected excluded node: `node_linear_3`
+- Final output-head precision: FP32
+- External input precision: FP32
+- External output precision: FP32
+- Dynamic batch preserved
+- INT8 initializers: 10
+- INT32 initializers: 6
+- FP32 ONNX graph size: 25,420 bytes
+- Mixed INT8/FP32 ONNX graph size: 16,977 bytes
+- Serialized-size reduction versus FP32: 33.21%
+- Production/probe mean absolute difference: 0.0
+- Production/probe maximum absolute difference: 0.0
+- Production/probe `allclose`: True
+- Held-out test rows: 900
+- Mean normalized quantization drift: 0.008028
+- P95 normalized quantization drift: 0.020127
+- P99 normalized quantization drift: 0.027546
+- P99.9 normalized quantization drift: 0.041373
+- Maximum normalized quantization drift: 0.058695
+- Mean normalized-drift ceiling: 0.015 — PASS
+- P99 normalized-drift ceiling: 0.040 — PASS
+- P99.9 normalized-drift ceiling: 0.060 — PASS
+- Maximum normalized-drift ceiling: 0.080 — PASS
+- Mixed INT8/FP32 mean test NRMSE: 0.051566
+- Mixed INT8/FP32 mean test R²: 0.996855
+- ONNX Runtime CPU batch-1 median:
+  - FP32: 0.004613 ms
+  - mixed INT8/FP32: 0.005370 ms
+  - paired FP32/INT8 ratio: 0.859×
+  - INT8 faster runs: 0/5
+- ONNX Runtime CPU batch-32 median:
+  - FP32: 0.008414 ms
+  - mixed INT8/FP32: 0.008715 ms
+  - paired FP32/INT8 ratio: 0.973×
+  - INT8 faster runs: 0/5
+- ONNX Runtime CPU batch-256 median:
+  - FP32: 0.037539 ms
+  - mixed INT8/FP32: 0.030682 ms
+  - paired FP32/INT8 ratio: 1.232×
+  - INT8 faster runs: 5/5
+- Batch-256 mixed INT8/FP32 median latency was approximately 18% lower than
+  FP32.
+- Mixed INT8/FP32 therefore reduced serialized size and preserved strong
+  predictive quality while producing a workload-dependent latency tradeoff.
+- No universal INT8 speedup is claimed.
 - Complete neural and repository test suites passed locally.
-- Ruff formatting, Ruff lint, `pip check`, and `git diff --check` passed locally.
+- Ruff formatting and lint checks passed locally.
+- Targeted mypy checks passed locally.
+- `pip check` and `git diff --check` passed locally.
 
 ### Planned
 
-- INT8 neural-model quantization
-- Unified FP32 / FP16 / INT8 deployment comparison
+- Unified FP32 / FP16 / mixed-INT8 deployment decision tooling
+- Machine-readable deployment-candidate metadata
+- Constraint-based precision/runtime selection
 - Qualcomm AI Hub integration
 - Qualcomm QNN compilation
 - Snapdragon NPU profiling
