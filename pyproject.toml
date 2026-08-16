@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "edgegenbench"
-version = "0.1.0"
-description = "Uncertainty-aware surrogate modeling and edge-ready inference for hybrid-electric and hydrogen regional aircraft design."
+version = "0.2.0"
+description = "Scientific ML, uncertainty-aware aircraft-design optimization, and hardware-aware edge inference."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
@@ -13,6 +13,8 @@ authors = [
 ]
 keywords = [
   "surrogate-modeling",
+  "scientific-machine-learning",
+  "pytorch",
   "uncertainty-quantification",
   "aircraft-design",
   "multi-objective-optimization",
@@ -20,7 +22,7 @@ keywords = [
   "onnx"
 ]
 dependencies = [
-    "joblib>=1.4" ,
+  "joblib>=1.4",
   "matplotlib>=3.9",
   "numpy>=2.0",
   "pandas>=2.2",
