@@ -68,11 +68,44 @@ The current development work adds:
 - mixed INT8/FP32 graph validation;
 - held-out INT8 drift and predictive-quality evaluation;
 - repeated FP32 versus mixed-INT8 ONNX Runtime CPU benchmarking;
-- public FP32, FP16, and INT8 deployment CLI commands;
+- provider-aware FP32, FP16, and mixed-INT8 deployment candidates;
+- constraint-aware deployment filtering by batch size, provider, latency,
+  serialized model size, R², NRMSE, and precision drift;
+- deterministic lowest-latency, smallest-model, highest-accuracy, and balanced
+  deployment-selection policies;
+- explicit rejection reasons for infeasible deployment candidates;
+- JSON and Markdown deployment-decision reports;
+- public FP32, FP16, INT8, and deployment-selection CLI commands;
 - targeted static type checking for deployment modules.
 
-Qualcomm QNN, Snapdragon NPU profiling, unified deployment-policy tooling, and
-distribution-shift studies remain future work.
+Qualcomm QNN integration, Snapdragon NPU profiling, and distribution-shift
+studies remain future work.
+
+## Deployment-aware model selection
+
+EdgeGenBench now converts the measured FP32, FP16, and mixed INT8/FP32
+deployment studies into explicit deployment decisions.
+
+The selector applies hard constraints before ranking candidates, including
+batch size, execution provider, latency, serialized model size, predictive
+quality, and precision drift.
+
+Validated examples:
+
+| Scenario | Selected candidate | Provider | Median latency |
+|---|---|---|---:|
+| Batch 1, lowest latency | `fp32_cpu` | CPUExecutionProvider | 0.004613 ms |
+| Batch 32, balanced | `fp32_cpu` | CPUExecutionProvider | 0.008414 ms |
+| Batch 256, lowest latency | `mixed_int8_fp32_cpu` | CPUExecutionProvider | 0.030682 ms |
+| Batch 32, CoreML only, balanced | `fp32_coreml` | CoreMLExecutionProvider | 0.040879 ms |
+
+The measured results show that no precision/runtime configuration is
+universally optimal. Mixed INT8/FP32 reduces serialized ONNX size by 33.21%
+and provides approximately 18% lower median CPU latency than FP32 at batch
+256, while FP32 remains faster for the measured batch-1 and batch-32 CPU
+workloads.
+
+Cross-provider timings should not be interpreted as a direct hardware ranking.
 
 ## Benchmark problem
 

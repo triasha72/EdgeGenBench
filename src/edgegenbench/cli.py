@@ -9,6 +9,12 @@ from edgegenbench.data.generate import generate_dataset
 from edgegenbench.deployment.benchmark import (
     benchmark_edge_models,
 )
+from edgegenbench.deployment.model_selection import (
+    DeploymentConstraints,
+    load_edgegenbench_deployment_candidates,
+    select_deployment_candidate,
+    write_selection_report,
+)
 from edgegenbench.deployment.neural_benchmark import (
     benchmark_neural_onnx,
 )
@@ -1085,3 +1091,175 @@ def benchmark_neural_int8_command(
     typer.echo(f"Latency runs: {artifacts.latency_runs_path}")
     typer.echo(f"Latency summary: {artifacts.latency_summary_path}")
     typer.echo(f"Summary: {artifacts.summary_path}")
+
+
+@app.command(name="select-neural-deployment")
+def select_neural_deployment_command(
+    batch_size: int = typer.Option(
+        256,
+        "--batch-size",
+        min=1,
+        help="Measured deployment batch size to select for.",
+    ),
+    policy: str = typer.Option(
+        "lowest_latency",
+        "--policy",
+        help=(
+            "Ranking policy after hard filtering: lowest_latency, smallest_model, "
+            "highest_accuracy, or balanced."
+        ),
+    ),
+    max_latency_ms: float | None = typer.Option(
+        None,
+        "--max-latency-ms",
+        min=0.0,
+        help="Optional maximum measured median batch latency in milliseconds.",
+    ),
+    max_model_size_mb: float | None = typer.Option(
+        None,
+        "--max-model-size-mb",
+        min=0.0,
+        help="Optional maximum serialized canonical ONNX model size in MiB.",
+    ),
+    min_r2: float | None = typer.Option(
+        None,
+        "--min-r2",
+        help="Optional minimum held-out mean R2.",
+    ),
+    max_nrmse_std: float | None = typer.Option(
+        None,
+        "--max-nrmse-std",
+        min=0.0,
+        help="Optional maximum held-out mean normalized RMSE.",
+    ),
+    max_normalized_drift: float | None = typer.Option(
+        None,
+        "--max-normalized-drift",
+        min=0.0,
+        help="Optional maximum normalized deployment drift.",
+    ),
+    provider: str | None = typer.Option(
+        None,
+        "--provider",
+        help=(
+            "Optional exact execution provider, for example CPUExecutionProvider "
+            "or CoreMLExecutionProvider."
+        ),
+    ),
+    neural_training_summary: Path = typer.Option(
+        Path("artifacts/neural_surrogate/summary.json"),
+        "--neural-training-summary",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Held-out FP32 neural-surrogate quality summary.",
+    ),
+    fp16_benchmark_summary: Path = typer.Option(
+        Path("artifacts/neural_fp16_benchmark/summary.json"),
+        "--fp16-benchmark-summary",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Validated FP32/FP16 CoreML benchmark summary.",
+    ),
+    int8_benchmark_summary: Path = typer.Option(
+        Path("artifacts/neural_int8_benchmark/summary.json"),
+        "--int8-benchmark-summary",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Validated FP32/mixed-INT8 CPU benchmark summary.",
+    ),
+    fp32_model: Path = typer.Option(
+        Path("artifacts/neural_onnx/neural_surrogate.onnx"),
+        "--fp32-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Canonical dynamic FP32 neural ONNX model.",
+    ),
+    fp16_model: Path = typer.Option(
+        Path("artifacts/neural_fp16/neural_surrogate_fp16.onnx"),
+        "--fp16-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Canonical dynamic FP16 neural ONNX model.",
+    ),
+    int8_model: Path = typer.Option(
+        Path("artifacts/neural_int8/neural_surrogate_int8.onnx"),
+        "--int8-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Validated mixed INT8/FP32 neural ONNX model.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/deployment_selection"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for JSON and Markdown selection reports.",
+    ),
+) -> None:
+    """Select a validated neural deployment candidate under explicit constraints."""
+    candidates = load_edgegenbench_deployment_candidates(
+        neural_training_summary_path=neural_training_summary,
+        fp16_benchmark_summary_path=fp16_benchmark_summary,
+        int8_benchmark_summary_path=int8_benchmark_summary,
+        fp32_model_path=fp32_model,
+        fp16_model_path=fp16_model,
+        int8_model_path=int8_model,
+    )
+
+    constraints = DeploymentConstraints(
+        batch_size=batch_size,
+        max_latency_ms=max_latency_ms,
+        max_model_size_mb=max_model_size_mb,
+        min_r2=min_r2,
+        max_nrmse_std=max_nrmse_std,
+        max_normalized_drift=max_normalized_drift,
+        required_provider=provider,
+    )
+
+    result = select_deployment_candidate(
+        candidates,
+        constraints,
+        policy=policy,
+    )
+
+    artifacts = write_selection_report(
+        result,
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Candidates evaluated: {len(result.decisions)}")
+    typer.echo(f"Feasible candidates: {result.feasible_count}")
+    typer.echo(f"Policy: {result.policy}")
+
+    selected = result.selected_candidate
+    if selected is None:
+        typer.echo("Selected candidate: none")
+        typer.echo("No candidate satisfies all hard deployment constraints.")
+        typer.echo(f"JSON report: {artifacts.json_path}")
+        typer.echo(f"Markdown report: {artifacts.markdown_path}")
+        raise typer.Exit(code=2)
+
+    typer.echo(f"Selected candidate: {selected.name}")
+    typer.echo(f"Precision: {selected.precision}")
+    typer.echo(f"Provider: {selected.provider}")
+    typer.echo(f"Batch size: {selected.batch_size}")
+    typer.echo(f"Median latency: {selected.median_latency_ms:.6f} ms")
+    typer.echo(f"Model size: {selected.model_size_bytes} bytes")
+    typer.echo(f"Mean test R2: {selected.mean_r2:.6f}")
+    typer.echo(f"Mean test NRMSE: {selected.mean_nrmse_std:.6f}")
+    typer.echo(f"Maximum normalized drift: {selected.max_normalized_drift:.6f}")
+    typer.echo(f"JSON report: {artifacts.json_path}")
+    typer.echo(f"Markdown report: {artifacts.markdown_path}")

@@ -33,10 +33,10 @@ FP16 deployment study                            COMPLETE / UNRELEASED
 Mixed INT8/FP32 quantization study               COMPLETE / UNRELEASED
         |
         v
-Unified reduced-precision model selection        NEXT
+Deployment-aware neural model selection         COMPLETE / UNRELEASED
         |
         v
-Qualcomm AI Hub / QNN                            PLANNED
+Qualcomm AI Hub / QNN                            NEXT
         |
         v
 Snapdragon NPU profiling                         PLANNED
@@ -386,44 +386,71 @@ No universal INT8 latency improvement is claimed.
 
 ---
 
-## Milestone 6 — unified reduced-precision model selection
+## Milestone 6 — deployment-aware neural model selection
 
-**Status: NEXT**
+**Status: COMPLETE / UNRELEASED**
 
 ### Goal
 
-Create a unified deployment comparison that makes precision/runtime selection
-dependent on explicit deployment constraints rather than a single universal
-"best" model.
+Select among measured FP32, FP16, and mixed INT8/FP32 deployment candidates
+using explicit deployment requirements instead of assuming one precision or
+runtime is universally optimal.
 
-Current validated evidence:
+### Implemented
 
-| Runtime / precision | Mean NRMSE | Mean R² | Artifact size | Batch-1 behavior | Batch-32 behavior | Batch-256 behavior |
-|---|---:|---:|---:|---|---|---|
-| ORT FP32 CPU | 0.050433 | 0.996955 | 25,420 B | reference | reference | reference |
-| ORT/CoreML FP16 | 0.050473 | 0.996954 | 19,221 B | near parity | near parity | slower |
-| ORT mixed INT8/FP32 CPU | 0.051566 | 0.996855 | 16,977 B | slower | near parity/slightly slower | ~18% lower median latency |
+- machine-readable provider-aware deployment candidates;
+- measured FP32 CPU benchmark ingestion;
+- measured mixed INT8/FP32 CPU benchmark ingestion;
+- measured FP32 CoreML benchmark ingestion;
+- measured FP16 CoreML benchmark ingestion;
+- batch-size constraints;
+- execution-provider constraints;
+- maximum-latency constraints;
+- maximum serialized-model-size constraints;
+- minimum R² constraints;
+- maximum NRMSE constraints;
+- maximum normalized-drift constraints;
+- explicit rejection reasons for infeasible candidates;
+- deterministic `lowest_latency` policy;
+- deterministic `smallest_model` policy;
+- deterministic `highest_accuracy` policy;
+- transparent weighted `balanced` policy;
+- deterministic tie breaking;
+- JSON deployment-decision reports;
+- Markdown deployment-decision reports;
+- public `select-neural-deployment` CLI;
+- deployment-selection unit tests;
+- CLI regression tests.
 
-Cross-provider timings should not be interpreted as a direct hardware ranking.
+### Validated deployment decisions
 
-### Planned work
+| Scenario | Selected candidate | Provider | Median latency | Model size | Mean R² |
+|---|---|---|---:|---:|---:|
+| Batch 1, lowest latency | `fp32_cpu` | CPUExecutionProvider | 0.004613 ms | 25,420 B | 0.996955 |
+| Batch 32, balanced | `fp32_cpu` | CPUExecutionProvider | 0.008414 ms | 25,420 B | 0.996955 |
+| Batch 256, lowest latency | `mixed_int8_fp32_cpu` | CPUExecutionProvider | 0.030682 ms | 16,977 B | 0.996855 |
+| Batch 256, CPU only | `mixed_int8_fp32_cpu` | CPUExecutionProvider | 0.030682 ms | 16,977 B | 0.996855 |
+| Batch 32, CoreML only, balanced | `fp32_coreml` | CoreMLExecutionProvider | 0.040879 ms | 25,420 B | 0.996955 |
 
-1. Define a machine-readable deployment-candidate schema.
-2. Normalize size, quality-drift, provider, and latency metadata.
-3. Define explicit accuracy, size, provider, and latency constraints.
-4. Implement candidate filtering.
-5. Implement deterministic deployment recommendation logic.
-6. Preserve provenance for every recommendation.
-7. Add CLI support.
-8. Add policy tests.
-9. Document examples for latency-sensitive, memory-sensitive, and
-   accuracy-sensitive deployment scenarios.
+### Conclusion
+
+No tested precision/runtime configuration is universally optimal.
+
+FP32 remains preferable for the measured small-batch CPU workloads, while
+mixed INT8/FP32 becomes the lowest-latency measured CPU deployment at batch
+256 and also provides the smallest validated ONNX artifact.
+
+FP16 reduces serialized model size but did not produce a robust universal
+latency improvement on the tested CoreML execution path.
+
+Cross-provider timings represent distinct measured deployment configurations
+and should not be interpreted as a direct hardware or precision-only ranking.
 
 ---
 
 ## Milestone 7 — Qualcomm AI Hub / QNN
 
-**Status: PLANNED**
+**Status: NEXT**
 
 Goals:
 

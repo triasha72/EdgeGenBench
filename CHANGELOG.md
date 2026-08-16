@@ -8,6 +8,17 @@ The project uses semantic versioning for public releases.
 
 ### Added
 
+- Provider-aware neural deployment-candidate schema
+- Unified FP32 / FP16 / mixed-INT8 measured benchmark ingestion
+- Batch-size and execution-provider deployment constraints
+- Latency, serialized-size, R², NRMSE, and precision-drift constraints
+- Explicit rejection reasons for infeasible deployment candidates
+- Deterministic `lowest_latency`, `smallest_model`, and `highest_accuracy` policies
+- Transparent weighted `balanced` deployment-selection policy
+- Deterministic deployment-selection tie breaking
+- JSON and Markdown deployment-decision reports
+- Public `select-neural-deployment` CLI command
+- Deployment-model-selection unit and CLI regression tests
 - Neural checkpoint reconstruction from stored architecture metadata
 - PyTorch-to-ONNX FP32 neural-surrogate export
 - Dynamic-batch neural ONNX graph support
@@ -192,11 +203,27 @@ The project uses semantic versioning for public releases.
 - Targeted mypy checks passed locally.
 - `pip check` and `git diff --check` passed locally.
 
+### Validated — deployment-aware neural model selection
+
+- Measured deployment candidates: 12
+- Provider/precision configurations: 4
+- Evaluated batch sizes: 1, 32, and 256
+- Batch-1 lowest-latency selection: `fp32_cpu`
+- Batch-32 balanced selection: `fp32_cpu`
+- Batch-256 lowest-latency selection: `mixed_int8_fp32_cpu`
+- CPU-only batch-256 selection: `mixed_int8_fp32_cpu`
+- Mixed INT8/FP32 batch-256 median CPU latency: 0.030682 ms
+- Mixed INT8/FP32 serialized model size: 16,977 bytes
+- Mixed INT8/FP32 mean test R²: 0.996855
+- Mixed INT8/FP32 mean test NRMSE: 0.051566
+- Mixed INT8/FP32 maximum normalized drift: 0.058695
+- CoreML-only batch-32 balanced selection: `fp32_coreml`
+- Incompatible candidates retain explicit rejection reasons
+- Cross-provider comparisons remain provider- and benchmark-context dependent
+- No universal FP16 or INT8 latency improvement is claimed
+
 ### Planned
 
-- Unified FP32 / FP16 / mixed-INT8 deployment decision tooling
-- Machine-readable deployment-candidate metadata
-- Constraint-based precision/runtime selection
 - Qualcomm AI Hub integration
 - Qualcomm QNN compilation
 - Snapdragon NPU profiling
