@@ -130,7 +130,7 @@ def benchmark_neural_onnx(
         device="cpu",
     )
 
-    with torch.no_grad():
+    with torch.inference_mode():
         pytorch_normalized = pytorch_model(pytorch_features).cpu().numpy().astype(np.float32)
 
     onnx_normalized = runtime.session.run(
@@ -228,8 +228,7 @@ def benchmark_neural_onnx(
         def pytorch_operation(
             batch: torch.Tensor = torch_batch,
         ) -> object:
-            with torch.no_grad():
-                return pytorch_model(batch)
+            return pytorch_model(batch)
 
         def onnx_operation(
             batch: np.ndarray = numpy_batch,
@@ -243,14 +242,15 @@ def benchmark_neural_onnx(
                 },
             )
 
-        (
-            pytorch_mean_ms,
-            pytorch_p95_ms,
-        ) = _measure_latency(
-            pytorch_operation,
-            repeats=repeats,
-            warmups=warmups,
-        )
+        with torch.inference_mode():
+            (
+                pytorch_mean_ms,
+                pytorch_p95_ms,
+            ) = _measure_latency(
+                pytorch_operation,
+                repeats=repeats,
+                warmups=warmups,
+            )
 
         (
             onnx_mean_ms,

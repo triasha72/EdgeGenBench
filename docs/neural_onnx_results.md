@@ -1,40 +1,39 @@
-# EdgeGenBench Neural ONNX Deployment Results
+# EdgeGenBench Neural FP32 ONNX Deployment Results
 
-This document records the FP32 neural deployment milestone that follows the
-EdgeGenBench v0.2 compact PyTorch surrogate release.
+This document records the validated FP32 neural deployment milestone following
+the EdgeGenBench v0.2 compact PyTorch surrogate release.
 
 ## Scope
 
-The deployment milestone adds:
+The FP32 deployment milestone adds:
 
-- reconstruction of the trained neural surrogate from checkpoint metadata;
+- trained-checkpoint reconstruction;
 - PyTorch-to-ONNX export;
 - dynamic ONNX batch dimensions;
-- ONNX graph validation;
+- graph validation;
 - ONNX Runtime CPU execution;
 - frozen preprocessing reuse;
 - normalized numerical-equivalence testing;
 - physical-unit numerical-equivalence testing;
 - paired PyTorch CPU versus ONNX Runtime CPU benchmarking;
 - repeated runtime measurements;
-- public neural ONNX export and benchmark CLI commands.
-
-FP16, INT8, Qualcomm QNN, and Snapdragon NPU deployment remain future work.
+- corrected microbenchmark methodology;
+- public FP32 neural ONNX export and benchmark CLI commands.
 
 ## Environment
+
+Reference local deployment environment:
 
 | Component | Value |
 |---|---|
 | Python | 3.12 |
 | PyTorch | 2.13.0 |
-| ONNX | 1.22.0 |
-| ONNX Script | 0.7.1 |
 | ONNX Runtime | 1.28.0 |
 | ONNX provider | CPUExecutionProvider |
 | PyTorch CPU threads | 4 |
 | Development platform | ARM64 macOS |
 
-All runtime measurements are hardware- and environment-specific.
+Runtime measurements are hardware- and environment-specific.
 
 ## Model
 
@@ -69,10 +68,9 @@ The batch dimension is dynamic.
 | Dynamic batch | Yes |
 | PyTorch checkpoint size | 16,881 bytes |
 | ONNX graph size | 25,420 bytes |
-| ONNX/PyTorch serialized-size ratio | 1.506× |
 
-The PyTorch checkpoint and ONNX graph are different serialization formats, so
-the file-size ratio is not a direct parameter-memory comparison.
+The PyTorch checkpoint and ONNX graph use different serialization formats, so
+their file sizes are not direct parameter-memory equivalents.
 
 ## Held-out numerical equivalence
 
@@ -101,63 +99,70 @@ Equivalence was evaluated on all 900 held-out test rows.
 Runtime-conversion differences are negligible relative to the trained
 surrogate's predictive error.
 
-## Reference paired CPU benchmark
+## Corrected CPU benchmark methodology
 
-The first reference measurement used:
+A timing-methodology audit found that an earlier implementation entered and
+exited `torch.no_grad()` inside each individually timed PyTorch inference.
+
+For a network whose inference latency is measured in tens of microseconds, that
+per-call Python/context-manager overhead can materially influence the reported
+runtime ratio.
+
+The benchmark was corrected so that:
+
+```python
+def pytorch_operation():
+    return pytorch_model(batch)
+
+with torch.inference_mode():
+    measure_latency(pytorch_operation)
+```
+
+The inference context is therefore created once around the warmup and timed
+loop rather than inside every measured forward pass.
+
+Other methodology remains unchanged:
 
 - identical trained weights;
 - identical transformed FP32 inputs;
 - PyTorch CPU;
 - ONNX Runtime `CPUExecutionProvider`;
+- preprocessing outside the timed region;
+- runtime/model construction outside the timed region;
+- 50 warmups;
 - 500 measured repetitions;
-- 50 warmup iterations;
-- preprocessing outside the timed region.
+- three independent benchmark runs.
 
-Reference measurement:
+## Corrected three-run results
 
-| Batch | PyTorch mean | PyTorch P95 | ORT mean | ORT P95 | PyTorch / ORT |
-|---:|---:|---:|---:|---:|---:|
-| 1 | 0.026470 ms | 0.036541 ms | 0.006706 ms | 0.006833 ms | 3.947× |
-| 32 | 0.031845 ms | 0.042877 ms | 0.012230 ms | 0.012666 ms | 2.604× |
-| 256 | 0.047511 ms | 0.058212 ms | 0.049818 ms | 0.068117 ms | 0.954× |
+Aggregate results:
 
-Because absolute timings are in the microsecond regime, a repeatability study
-was then performed before making a final runtime claim.
+| Batch | Median PyTorch latency | Median ORT latency | Median PyTorch/ORT ratio | Ratio range |
+|---:|---:|---:|---:|---:|
+| 1 | 0.018341172 ms | 0.006156959 ms | **2.978933×** | 2.715243×–3.966734× |
+| 32 | 0.018427053 ms | 0.007984216 ms | **2.384702×** | 2.077892×–2.403927× |
+| 256 | 0.030840994 ms | 0.033573637 ms | **0.918607×** | 0.860143×–1.079221× |
 
-## Three-run repeatability experiment
-
-| Run | Batch 1 PyTorch/ORT | Batch 32 PyTorch/ORT | Batch 256 PyTorch/ORT |
-|---:|---:|---:|---:|
-| 1 | 2.868× | 2.958× | 1.659× |
-| 2 | 3.768× | 2.818× | 1.788× |
-| 3 | 3.481× | 2.872× | 1.303× |
-
-Median absolute timings:
-
-| Batch | Median PyTorch latency | Median ORT latency | Median ratio |
-|---:|---:|---:|---:|
-| 1 | 0.051814 ms | 0.014886 ms | **3.481×** |
-| 32 | 0.065456 ms | 0.022665 ms | **2.872×** |
-| 256 | 0.103179 ms | 0.060500 ms | **1.659×** |
-
-ONNX Runtime produced lower mean latency than PyTorch in every one of the three
-repeat runs at all tested batch sizes.
-
-Absolute timing varied across runs, which is expected for very small
-microsecond-scale workloads. Therefore, the defensible result is the repeated
-directional advantage and batch-dependent ratio, not a universal latency value.
+A PyTorch/ORT ratio greater than 1 means ONNX Runtime had lower mean latency.
 
 ## Interpretation
 
-The experiment establishes that:
+The corrected experiment establishes:
 
-1. the compact FP32 PyTorch surrogate converts to a dynamic-batch ONNX graph;
-2. the exported graph preserves predictions on all 900 held-out rows;
-3. frozen training preprocessing can be reused safely for deployment;
-4. physical-unit output differences remain negligible;
-5. ONNX Runtime reduced local CPU mean latency in all three repeated runs for
-   batch sizes 1, 32, and 256;
-6. runtime advantages are workload- and machine-dependent.
+1. the compact FP32 PyTorch surrogate converts to a valid dynamic-batch ONNX
+   graph;
+2. predictions are preserved on all 900 held-out test rows;
+3. frozen training preprocessing can be reused for deployment;
+4. physical-unit conversion differences remain negligible;
+5. ONNX Runtime has a clear local latency advantage at batch size 1;
+6. ONNX Runtime has a clear local latency advantage at batch size 32;
+7. batch 256 is approximately parity and changes direction across repeated
+   runs;
+8. no universal ONNX Runtime latency advantage should be claimed from these
+   measurements.
+
+This correction is important because it removes Python inference-context
+overhead from the timed PyTorch operation.
 
 ## CLI workflow
 
@@ -185,6 +190,9 @@ edgegenbench benchmark-neural-onnx \
   --warmups 50
 ```
 
+For repeatability-sensitive performance reporting, execute the benchmark
+multiple times and report median/range rather than one invocation.
+
 ## Generated artifacts
 
 ```text
@@ -198,11 +206,12 @@ artifacts/neural_onnx_benchmark/
 └── summary.json
 ```
 
-Generated artifacts are intentionally ignored by Git.
+Corrected multi-run aggregate results may be stored separately under ignored
+local benchmark-artifact directories.
 
 ## Automated validation
 
-The deployment implementation is covered by:
+The FP32 deployment implementation is covered by:
 
 - checkpoint reconstruction tests;
 - ONNX export tests;
@@ -211,42 +220,28 @@ The deployment implementation is covered by:
 - ONNX Runtime inference tests;
 - normalized parity tests;
 - physical-unit parity tests;
-- benchmark generation tests;
-- benchmark schema tests;
+- benchmark-generation tests;
+- benchmark-schema tests;
 - CLI registration tests.
 
-The complete neural suite contains **27 passing tests** at this milestone.
+## Relationship to FP16 work
 
-## Next deployment milestones
+The validated FP32 graph is the reference artifact for the subsequent FP16
+deployment study.
 
-```text
-PyTorch FP32
-    |
-    v
-ONNX FP32                     COMPLETE
-    |
-    v
-FP16                          NEXT
-    |
-    v
-INT8
-    |
-    v
-reduced-precision comparison
-    |
-    v
-Qualcomm QNN
-    |
-    v
-Snapdragon NPU
-```
+See:
+
+[`docs/neural_fp16_results.md`](neural_fp16_results.md)
+
+for the reduced-precision evaluation.
 
 ## Limitations
 
 - Results use a synthetic aircraft-design benchmark.
 - Runtime measurements are machine-specific.
-- Microsecond-scale latency is sensitive to OS scheduling and runtime state.
+- Microsecond-scale latency is sensitive to operating-system scheduling and
+  runtime state.
 - PyTorch and ONNX serialized sizes are not directly equivalent.
-- FP16 and INT8 conversion have not yet been validated.
-- Qualcomm QNN and Snapdragon NPU deployment have not yet been validated.
+- CPU benchmark results should not be generalized to other hardware or batch
+  regimes.
 - EdgeGenBench is not a certified aircraft-design or safety-critical system.

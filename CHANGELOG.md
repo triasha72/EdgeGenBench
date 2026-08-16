@@ -13,43 +13,98 @@ The project uses semantic versioning for public releases.
 - Dynamic-batch neural ONNX graph support
 - ONNX graph validation
 - Frozen-preprocessor compatibility validation
-- ONNX Runtime CPU neural-surrogate inference wrapper
+- ONNX Runtime CPU neural-surrogate inference
 - Held-out PyTorch-to-ONNX numerical-equivalence evaluation
 - Physical-unit conversion-equivalence reporting
-- Paired PyTorch CPU versus ONNX Runtime CPU latency benchmarking
+- Paired PyTorch CPU versus ONNX Runtime CPU benchmarking
+- Corrected PyTorch inference timing using an outer `torch.inference_mode()`
+  context
 - Three-run neural-runtime repeatability evaluation
-- Batch-1, batch-32, and batch-256 neural deployment benchmarks
-- Neural ONNX export and benchmark metadata artifacts
+- Batch-1, batch-32, and batch-256 FP32 deployment benchmarks
+- Reproducible FP32-to-FP16 ONNX conversion
+- FP32 external I/O with FP16 internal initializers
+- `onnxconverter-common` edge dependency
+- Dynamic-batch FP16 ONNX artifacts
+- Static batch specialization for CoreML
+- FP32 CPU versus FP32 CoreML provider-drift analysis
+- FP32 CoreML versus FP16 CoreML precision-drift analysis
+- Per-target physical-unit FP16 drift reporting
+- FP16 held-out task metrics
+- FP16 numerical-drift regression guardrails
+- Five-run paired FP32-versus-FP16 CoreML benchmarking
+- Batch-1, batch-32, and batch-256 FP16 deployment benchmarks
 - Public `export-neural-onnx` CLI command
 - Public `benchmark-neural-onnx` CLI command
-- Neural ONNX export, inference, benchmark, and CLI tests
-- ONNX Script dependency for modern PyTorch ONNX export
-- Neural ONNX deployment-results documentation
-- Project deployment roadmap
+- Public `export-neural-fp16` CLI command
+- Public `benchmark-neural-fp16` CLI command
+- Parser-level tests for long FP16 CLI options
+- Neural ONNX export, inference, benchmark, FP16, and CLI tests
+- Neural FP32 ONNX deployment-results documentation
+- Neural FP16 deployment-results documentation
+- Updated deployment roadmap
 
-### Validated
+### Corrected
 
-- 900 held-out rows preserved across PyTorch and ONNX Runtime
-- Mean normalized absolute conversion difference: 1.306e-07
-- Maximum normalized absolute conversion difference: 9.537e-07
-- Dynamic ONNX input shape: `[batch, 10]`
-- Dynamic ONNX output shape: `[batch, 6]`
-- ONNX graph size: 25,420 bytes
-- PyTorch checkpoint size: 16,881 bytes
-- Three repeated local CPU benchmarks with lower ONNX Runtime mean latency at
-  batch sizes 1, 32, and 256
-- Median PyTorch/ORT mean-latency ratios:
-  - batch 1: approximately 3.481×
-  - batch 32: approximately 2.872×
-  - batch 256: approximately 1.659×
-- Complete neural suite with 27 passing tests
-- Full local formatting, lint, and repository test suite
+- Removed per-inference `torch.no_grad()` context-manager overhead from the
+  timed PyTorch CPU microbenchmark.
+- PyTorch timing now executes under one outer `torch.inference_mode()` context.
+- Repeated PyTorch CPU versus ONNX Runtime CPU performance claims were
+  regenerated using the corrected methodology.
+
+### Validated — FP32 neural ONNX
+
+- Test rows: 900
+- Mean normalized PyTorch-to-ONNX difference: 1.3064681070e-07
+- Maximum normalized PyTorch-to-ONNX difference: 9.5367431641e-07
+- Dynamic input shape: `[batch, 10]`
+- Dynamic output shape: `[batch, 6]`
+- FP32 ONNX graph size: 25,420 bytes
+- Corrected three-run PyTorch/ORT median mean-latency ratios:
+  - batch 1: 2.979×
+  - batch 32: 2.385×
+  - batch 256: 0.919×
+- Batch-256 PyTorch/ORT ratio range crossed parity:
+  - 0.860× to 1.079×
+- The corrected benchmark supports a clear ORT advantage at batches 1 and 32,
+  but not a universal advantage at batch 256.
+
+### Validated — FP16 neural ONNX
+
+- Test rows: 900
+- FP16 ONNX graph size: 19,221 bytes
+- FP32 ONNX graph size: 25,420 bytes
+- Serialized-size reduction: 24.39%
+- FP16 initializers: 8
+- Mean FP32-CoreML versus FP16-CoreML normalized difference: 9.7869e-04
+- Maximum FP32-CoreML versus FP16-CoreML normalized difference: 9.1944e-03
+- Mean normalized-drift ceiling: 0.002 — PASS
+- Maximum normalized-drift ceiling: 0.012 — PASS
+- FP16 mean test NRMSE: 0.050473
+- FP16 mean test R²: 0.996954
+- FP32 CPU versus FP32 CoreML mean normalized provider drift: 1.4848e-07
+- FP32 CPU versus FP32 CoreML maximum normalized provider drift: 1.4305e-06
+- CoreML batch-1 median:
+  - FP32: 0.038480 ms
+  - FP16: 0.038685 ms
+  - paired ratio: 0.995×
+- CoreML batch-32 median:
+  - FP32: 0.040879 ms
+  - FP16: 0.041161 ms
+  - paired ratio: 1.009×
+- CoreML batch-256 median:
+  - FP32: 0.051657 ms
+  - FP16: 0.059952 ms
+  - paired ratio: 0.862×
+- FP16 was faster in 0 of 5 batch-256 runs.
+- FP16 preserved predictive quality while reducing serialized size, but did not
+  provide a universal latency improvement on the tested CoreML configuration.
+- Complete neural and repository test suites passed locally.
+- Ruff formatting, Ruff lint, `pip check`, and `git diff --check` passed locally.
 
 ### Planned
 
-- FP16 neural-model conversion and equivalence evaluation
 - INT8 neural-model quantization
-- Accuracy, model-size, latency, and throughput comparison across precision modes
+- Unified FP32 / FP16 / INT8 deployment comparison
 - Qualcomm AI Hub integration
 - Qualcomm QNN compilation
 - Snapdragon NPU profiling
@@ -107,7 +162,7 @@ The project uses semantic versioning for public releases.
 
 ### Notes
 
-- CPU is the primary local PyTorch latency baseline.
+- CPU is the primary local PyTorch reference runtime.
 - Apple MPS training and inference were functionally validated.
 - MPS latency for the tiny model showed run-to-run variability.
 - Neural ONNX deployment was intentionally left for subsequent development.
