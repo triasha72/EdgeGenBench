@@ -114,6 +114,7 @@ The benchmark was corrected so that:
 def pytorch_operation():
     return pytorch_model(batch)
 
+
 with torch.inference_mode():
     measure_latency(pytorch_operation)
 ```
