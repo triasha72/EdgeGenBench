@@ -8,6 +8,18 @@ The project uses semantic versioning for public releases.
 
 ### Added
 
+- Optional Qualcomm AI Hub Workbench dependency group
+- Qualcomm QNN deployment-result normalization helpers
+- Offline Qualcomm profile and numerical-parity tests
+- Snapdragon 8 Elite QRD QNN deployment workflow
+- QNN HTP and Hexagon v79 deployment provenance
+- Batch-1, batch-32, and batch-256 QNN deployment validation
+- Snapdragon NPU compute-unit verification
+- 900-row held-out Snapdragon QNN inference
+- Multi-graph Qualcomm compile-and-link workflow
+- Linked batch-1, batch-32, and batch-256 QNN graph validation
+- Canonical Qualcomm deployment evidence report
+- Qualcomm QNN deployment documentation
 - Provider-aware neural deployment-candidate schema
 - Unified FP32 / FP16 / mixed-INT8 measured benchmark ingestion
 - Batch-size and execution-provider deployment constraints
@@ -222,11 +234,42 @@ The project uses semantic versioning for public releases.
 - Cross-provider comparisons remain provider- and benchmark-context dependent
 - No universal FP16 or INT8 latency improvement is claimed
 
+### Validated — Qualcomm QNN / Snapdragon 8 Elite
+
+- Device: Snapdragon 8 Elite QRD
+- OS: Android 15
+- Chipset: Snapdragon 8 Elite / sm8750
+- QNN backend: HTP
+- Hexagon architecture: v79
+- QAIRT: 2.45.0.260326154327
+- Linked QNN target model: `mnl7771jm`
+- Linked graphs: batch 1, batch 32, batch 256
+- Linked batch-1 AI Hub profile latency: 38 us
+- Linked batch-32 AI Hub profile latency: 34 us
+- Linked batch-256 AI Hub profile latency: 57 us
+- Linked batch-1 compute units: NPU: 9
+- Linked batch-32 compute units: NPU: 9
+- Linked batch-256 compute units: NPU: 9
+- Linked batch-1 peak inference memory: 122,937,344 bytes
+- Linked batch-32 peak inference memory: 122,888,192 bytes
+- Linked batch-256 peak inference memory: 123,211,776 bytes
+- Held-out Snapdragon rows: 900
+- Local FP32 ONNX mean R2: 0.996955004
+- Linked Snapdragon QNN mean R2: 0.996953249
+- Local FP32 ONNX mean NRMSE: 0.050432628
+- Linked Snapdragon QNN mean NRMSE: 0.050444571
+- Mean linked QNN normalized drift: 0.000411944
+- Maximum linked QNN normalized drift: 0.003635877
+- All three linked graphs placed all nine profiled layers on the NPU
+- AI Hub profile latency is not described as end-to-end Android latency
+- Derived model throughput is not described as end-to-end application
+  throughput
+- CPU, CoreML, and Snapdragon timings remain explicitly hardware-contextual
+
 ### Planned
 
-- Qualcomm AI Hub integration
-- Qualcomm QNN compilation
-- Snapdragon NPU profiling
+- Qualcomm-native INT8/QDQ Snapdragon evaluation
+- Cross-Snapdragon hardware evaluation
 - Distribution-shift and extrapolation evaluation
 - Additional missions and aircraft-design spaces
 - Hardware-aware model-selection policies
