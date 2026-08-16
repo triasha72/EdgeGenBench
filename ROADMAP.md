@@ -30,10 +30,10 @@ FP32 neural ONNX deployment                      COMPLETE / UNRELEASED
 FP16 deployment study                            COMPLETE / UNRELEASED
         |
         v
-INT8 quantization study                          NEXT
+Mixed INT8/FP32 quantization study               COMPLETE / UNRELEASED
         |
         v
-Reduced-precision model selection                PLANNED
+Unified reduced-precision model selection        NEXT
         |
         v
 Qualcomm AI Hub / QNN                            PLANNED
@@ -217,63 +217,207 @@ exclusive Apple Neural Engine execution.
 
 ---
 
-## Milestone 5 — INT8 quantization
+## Milestone 5 — mixed INT8/FP32 quantization
 
-**Status: NEXT**
+**Status: COMPLETE / UNRELEASED**
 
 ### Goal
 
-Evaluate the accuracy-size-latency tradeoff of INT8 deployment.
+Evaluate the accuracy-size-latency tradeoff of quantized neural ONNX deployment
+without using held-out validation or test data to fit calibration statistics.
 
-### Work items
+### Quantization investigation
 
-1. Determine supported quantization behavior for the validated neural graph.
-2. Select dynamic or static quantization based on runtime/operator support.
-3. Define a calibration subset without using held-out test targets.
-4. Freeze calibration configuration and seed.
-5. Produce a versioned INT8 artifact.
-6. Validate the quantized graph.
-7. Run all 900 held-out test rows.
-8. Separate provider drift, quantization drift, and predictive error.
-9. Record per-target physical-unit drift.
-10. Compare serialized FP32, FP16, and INT8 sizes.
-11. Benchmark batches 1, 32, and 256.
-12. Repeat latency measurements.
-13. Record fallback or unsupported operators.
-14. Add CLI, tests, and reproducible result artifacts.
-
-### Scientific guardrails
-
-- never calibrate on the test set;
-- report target-level drift;
-- distinguish quantization error from original model error;
-- report provider and hardware;
-- do not assume INT8 is faster before measuring it.
-
-Recommended branch after the current FP16 work is merged:
+The validated FP32 neural graph contains:
 
 ```text
-feat/neural-int8-evaluation
+Gemm: 4
+Relu: 3
 ```
+
+ONNX Runtime operator support showed that dynamic IntegerOps quantization does
+not directly support the existing `Gemm` structure in the required way, while
+static QDQ supports the graph.
+
+The INT8 investigation therefore selected static QDQ rather than manually
+rewriting `Gemm` operators into `MatMul`.
+
+### Calibration investigation
+
+An initial deterministic 512-row training calibration subset produced a large
+estimated-takeoff-mass drift outlier.
+
+The root cause was traced to activation-range saturation:
+
+- the 512-row calibration subset did not observe the full output range;
+- a held-out test prediction exceeded the calibrated representable range;
+- the quantized output clipped at the maximum representable value.
+
+Calibration was therefore expanded to **all 4,200 training rows**.
+
+No validation or test rows are used for calibration.
+
+### Candidate selection
+
+Three final candidates were compared:
+
+1. per-channel QInt8 using a 512-row training calibration subset;
+2. per-channel QInt8 using all 4,200 training rows;
+3. per-channel QInt8 using all 4,200 training rows while retaining the final
+   `node_linear_3` output `Gemm` in FP32.
+
+Selection was based on validation results.
+
+The retained-FP32-output-head configuration achieved the strongest overall
+validation tradeoff across drift, NRMSE, R², and serialized size.
+
+### Frozen production configuration
+
+```text
+Quantization format      Static QDQ
+Activations              QInt8
+Weights                  QInt8
+Weight quantization      Per-channel
+Calibration              MinMax
+Calibration population   All 4,200 training rows
+Calibration split        Train only
+Excluded node            node_linear_3
+Final output head        FP32
+External input            FP32
+External output           FP32
+Reference execution      ONNX Runtime CPU
+Selection basis          Validation
+```
+
+The correct deployment label is:
+
+> Mixed-precision INT8/FP32 static QDQ with an FP32 output head.
+
+The model must not be described as fully INT8.
+
+### Production export
+
+| Property | Value |
+|---|---:|
+| Test input width | 10 |
+| Output width | 6 |
+| Dynamic batch | Yes |
+| INT8 initializers | 10 |
+| INT32 initializers | 6 |
+| FP32 ONNX size | 25,420 bytes |
+| Mixed INT8/FP32 size | 16,977 bytes |
+| Size reduction versus FP32 | 33.21% |
+
+The final output parameters remain FP32:
+
+```text
+node_linear_3       Gemm
+network.6.weight    FLOAT
+network.6.bias      FLOAT
+```
+
+### Production/probe parity
+
+The production exporter was compared directly with the validation-selected
+experimental artifact over all 900 held-out test rows.
+
+| Metric | Value |
+|---|---:|
+| Mean absolute difference | 0.0 |
+| Maximum absolute difference | 0.0 |
+| `allclose` | True |
+
+This verifies that the production implementation reproduces the selected
+experimental configuration exactly.
+
+### Held-out drift
+
+| Metric | Result | Guard |
+|---|---:|---:|
+| Mean normalized drift | 0.008028 | ≤ 0.015 |
+| P95 normalized drift | 0.020127 | — |
+| P99 normalized drift | 0.027546 | ≤ 0.040 |
+| P99.9 normalized drift | 0.041373 | ≤ 0.060 |
+| Maximum normalized drift | 0.058695 | ≤ 0.080 |
+| Mean guard | PASS | — |
+| P99 guard | PASS | — |
+| P99.9 guard | PASS | — |
+| Maximum guard | PASS | — |
+
+### Held-out predictive quality
+
+| Metric | FP32 reference | Mixed INT8/FP32 |
+|---|---:|---:|
+| Mean NRMSE | 0.050433 | 0.051566 |
+| Mean R² | 0.996955 | 0.996855 |
+
+Predictive quality remains strong after quantization.
+
+### Repeated ONNX Runtime CPU latency
+
+Benchmark configuration:
+
+```text
+Provider CPUExecutionProvider
+Runs     5
+Repeats  500
+Warmups  50
+```
+
+| Batch | FP32 median | INT8 median | Median FP32/INT8 ratio | INT8 faster runs |
+|---:|---:|---:|---:|---:|
+| 1 | 0.004613 ms | 0.005370 ms | 0.859× | 0/5 |
+| 32 | 0.008414 ms | 0.008715 ms | 0.973× | 0/5 |
+| 256 | 0.037539 ms | 0.030682 ms | 1.232× | 5/5 |
+
+### Conclusion
+
+Mixed INT8/FP32 deployment reduced the serialized neural ONNX graph by
+approximately 33.2% while preserving strong held-out predictive quality.
+
+Latency was batch dependent:
+
+- batch 1 was slower under INT8;
+- batch 32 was close to parity but slightly slower;
+- batch 256 was faster under INT8 in all five runs;
+- median batch-256 latency was approximately 18% lower under INT8.
+
+No universal INT8 latency improvement is claimed.
 
 ---
 
 ## Milestone 6 — unified reduced-precision model selection
 
-**Status: PLANNED**
+**Status: NEXT**
 
-Create a unified comparison such as:
+### Goal
 
-| Runtime / precision | Accuracy drift | Artifact size | Batch-1 latency | Batch-32 latency | Batch-256 latency |
-|---|---:|---:|---:|---:|---:|
-| PyTorch FP32 CPU | reference | measured | measured | measured | measured |
-| ORT FP32 CPU | measured | 25,420 B | measured | measured | measured |
-| ORT/CoreML FP32 | measured | 25,420 B | measured | measured | measured |
-| ORT/CoreML FP16 | measured | 19,221 B | measured | measured | measured |
-| INT8 | planned | planned | planned | planned | planned |
+Create a unified deployment comparison that makes precision/runtime selection
+dependent on explicit deployment constraints rather than a single universal
+"best" model.
 
-Model/runtime selection should depend on deployment constraints rather than a
-single universal "best" model.
+Current validated evidence:
+
+| Runtime / precision | Mean NRMSE | Mean R² | Artifact size | Batch-1 behavior | Batch-32 behavior | Batch-256 behavior |
+|---|---:|---:|---:|---|---|---|
+| ORT FP32 CPU | 0.050433 | 0.996955 | 25,420 B | reference | reference | reference |
+| ORT/CoreML FP16 | 0.050473 | 0.996954 | 19,221 B | near parity | near parity | slower |
+| ORT mixed INT8/FP32 CPU | 0.051566 | 0.996855 | 16,977 B | slower | near parity/slightly slower | ~18% lower median latency |
+
+Cross-provider timings should not be interpreted as a direct hardware ranking.
+
+### Planned work
+
+1. Define a machine-readable deployment-candidate schema.
+2. Normalize size, quality-drift, provider, and latency metadata.
+3. Define explicit accuracy, size, provider, and latency constraints.
+4. Implement candidate filtering.
+5. Implement deterministic deployment recommendation logic.
+6. Preserve provenance for every recommendation.
+7. Add CLI support.
+8. Add policy tests.
+9. Document examples for latency-sensitive, memory-sensitive, and
+   accuracy-sensitive deployment scenarios.
 
 ---
 
@@ -298,6 +442,9 @@ Deliverables:
 - conversion logs;
 - parity report;
 - device-specific latency report.
+
+No Qualcomm accelerator claim should be made before supported tooling and
+hardware are used.
 
 ---
 
@@ -385,7 +532,9 @@ Current progression:
   |
   +-- FP16 deployment study              complete / unreleased
   |
-  +-- INT8 study                         next
+  +-- mixed INT8/FP32 deployment         complete / unreleased
+  |
+  +-- unified deployment policy          next
   |
   v
 future deployment-runtime release boundary
