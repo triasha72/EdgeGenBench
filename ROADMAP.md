@@ -1,7 +1,7 @@
 # EdgeGenBench Roadmap
 
-This roadmap separates **completed, validated work** from **planned deployment
-and research milestones**.
+This roadmap separates completed, validated work from planned deployment and
+research milestones.
 
 ## Guiding principles
 
@@ -11,7 +11,7 @@ EdgeGenBench should remain:
 - scientifically interpretable;
 - explicit about train/validation/test boundaries;
 - conservative about safety and feasibility claims;
-- transparent about runtime/hardware-specific measurements;
+- transparent about runtime- and hardware-specific measurements;
 - modular across training, evaluation, deployment, and hardware backends;
 - careful not to present planned work as completed work.
 
@@ -27,10 +27,10 @@ v0.2 Compact PyTorch neural surrogate            COMPLETE
 FP32 neural ONNX deployment                      COMPLETE / UNRELEASED
         |
         v
-FP16 deployment study                            NEXT
+FP16 deployment study                            COMPLETE / UNRELEASED
         |
         v
-INT8 quantization study                          PLANNED
+INT8 quantization study                          NEXT
         |
         v
 Reduced-precision model selection                PLANNED
@@ -51,31 +51,20 @@ Robustness / distribution-shift evaluation       PLANNED
 
 **Status: COMPLETE**
 
-Validated capabilities:
+Validated capabilities include deterministic synthetic data generation,
+classical surrogate modeling, uncertainty quantification, feasibility
+classification, constrained optimization, physics validation, and classical
+ONNX deployment.
 
-- deterministic synthetic aircraft-design dataset generation;
-- FP32 Ridge baseline;
-- Random Forest baseline;
-- HistGradientBoosting baseline;
-- held-out regression metrics;
-- model-size and latency comparison;
-- uncertainty estimation;
-- conformal intervals;
-- feasibility classification;
-- false-safe evaluation;
-- constrained multi-objective optimization;
-- Pareto-front extraction;
-- physics-based optimization validation;
-- classical ONNX export;
-- Scikit-learn ↔ ONNX Runtime numerical equivalence;
-- classical ONNX latency benchmarking.
+Reference outcomes include:
 
-Primary result:
-
-- HistGradientBoosting achieved the strongest classical held-out accuracy;
-- Random Forest remains the uncertainty/optimization path;
-- classical ONNX Runtime substantially reduced low-batch runtime overhead for
-  the deployed tree models.
+- HistGradientBoosting mean test NRMSE: 0.062249;
+- HistGradientBoosting mean test R²: 0.995171;
+- feasibility-classifier balanced accuracy: 98.24%;
+- false-safe rate: 2.12%;
+- 20,000 optimization candidates;
+- 47 Pareto designs;
+- 100% feasibility agreement on the validated Pareto front.
 
 ---
 
@@ -85,8 +74,8 @@ Primary result:
 
 Validated capabilities:
 
-- leakage-safe training-only feature normalization;
-- training-only target normalization;
+- train-only feature normalization;
+- train-only target normalization;
 - deterministic categorical encoding;
 - 10 → 64 → 32 → 16 → 6 PyTorch MLP;
 - 3,414 trainable parameters;
@@ -103,8 +92,8 @@ Reference accuracy:
 
 | Metric | Value |
 |---|---:|
-| Mean test NRMSE | 0.050425 |
-| Mean test R² | 0.996956 |
+| CPU mean test NRMSE | 0.050425 |
+| CPU mean test R² | 0.996956 |
 | Parameters | 3,414 |
 | PyTorch checkpoint | 16,881 bytes |
 
@@ -122,89 +111,115 @@ Implemented:
 - ONNX opset 18;
 - dynamic batch dimension;
 - ONNX checker validation;
-- ONNX Runtime CPU inference wrapper;
-- frozen-preprocessor reuse;
+- ONNX Runtime CPU inference;
+- frozen preprocessing reuse;
 - normalized prediction equivalence;
 - physical-unit prediction equivalence;
-- paired PyTorch CPU ↔ ORT CPU benchmark;
-- repeated runtime benchmark;
+- paired PyTorch CPU ↔ ORT CPU benchmarking;
+- corrected inference timing methodology;
+- repeated runtime benchmarking;
 - `export-neural-onnx` CLI;
 - `benchmark-neural-onnx` CLI;
-- export/inference/benchmark/CLI tests.
+- export, inference, benchmark, and CLI tests.
 
 Validated parity on 900 held-out rows:
 
 | Metric | Value |
 |---|---:|
-| Mean normalized abs difference | 1.306e-07 |
-| Max normalized abs difference | 9.537e-07 |
+| Mean normalized absolute difference | 1.306e-07 |
+| Maximum normalized absolute difference | 9.537e-07 |
 | Equivalence | PASS |
 
-Repeated local CPU benchmark:
+Corrected three-run CPU benchmark:
 
-| Batch | Median PyTorch/ORT ratio |
-|---:|---:|
-| 1 | 3.481× |
-| 32 | 2.872× |
-| 256 | 1.659× |
+| Batch | Median PyTorch | Median ORT | Median PyTorch/ORT ratio | Ratio range |
+|---:|---:|---:|---:|---:|
+| 1 | 0.018341 ms | 0.006157 ms | 2.979× | 2.715×–3.967× |
+| 32 | 0.018427 ms | 0.007984 ms | 2.385× | 2.078×–2.404× |
+| 256 | 0.030841 ms | 0.033574 ms | 0.919× | 0.860×–1.079× |
 
-ONNX Runtime produced lower mean latency in every one of the three repeat runs
-at all three batch sizes. Absolute microsecond-scale timings remain
-machine-specific.
+Interpretation:
 
-### Release gate
-
-Before merging/releasing this milestone:
-
-- full Ruff format check;
-- full Ruff lint check;
-- full pytest suite;
-- `pip check`;
-- staged diff audit;
-- GitHub Actions CI;
-- documentation review.
+- ORT shows a clear local advantage for batches 1 and 32;
+- batch 256 is approximately parity and changes direction across runs;
+- no universal ONNX Runtime speedup is claimed.
 
 ---
 
 ## Milestone 4 — FP16 deployment study
 
-**Status: NEXT**
+**Status: COMPLETE / UNRELEASED**
 
 ### Goal
 
-Determine whether reduced FP16 representation provides a meaningful size or
-runtime advantage without unacceptable predictive drift.
+Determine whether FP16 representation reduces deployment size while retaining
+acceptable predictive quality, and measure whether it changes runtime behavior
+on the tested CoreML execution path.
 
-### Work items
+### Implemented
 
-1. Research the correct FP16 conversion path for the selected runtime.
-2. Keep the FP32 ONNX graph as the reference artifact.
-3. Produce an FP16 deployment artifact.
-4. Validate ONNX graph integrity.
-5. Compare FP16 outputs against the frozen FP32 reference on all 900 held-out rows.
-6. Record:
-   - mean normalized absolute difference;
-   - maximum normalized absolute difference;
-   - per-target physical-unit error;
-   - relative error.
-7. Measure serialized artifact size.
-8. Benchmark batch sizes 1, 32, and 256.
-9. Repeat latency measurements rather than relying on one run.
-10. Document hardware/runtime limitations explicitly.
+- reproducible FP32-to-FP16 ONNX conversion;
+- external FP32 I/O retained;
+- eligible internal initializers converted to FP16;
+- ONNX graph validation;
+- dynamic-batch FP16 graph;
+- static batch specialization;
+- batch-1, batch-32, and batch-256 CoreML variants;
+- FP32 CPU versus FP32 CoreML provider-drift measurement;
+- FP32 CoreML versus FP16 CoreML precision-drift measurement;
+- per-target physical-unit drift;
+- held-out FP16 regression metrics;
+- project-specific FP16 drift guardrails;
+- five-run paired CoreML latency benchmark;
+- public `export-neural-fp16` CLI;
+- public `benchmark-neural-fp16` CLI;
+- portable and CoreML-aware tests;
+- parser-level tests for long CLI options.
 
-### Acceptance criteria
+### Validated results
 
-- conversion is reproducible;
-- graph passes validation;
-- output drift is quantified;
-- no unsupported "FP16 is faster" claim without measured evidence;
-- any speed/size claim identifies hardware and runtime.
+| Metric | Value |
+|---|---:|
+| Test rows | 900 |
+| FP32 ONNX size | 25,420 bytes |
+| FP16 ONNX size | 19,221 bytes |
+| Size reduction | 24.39% |
+| FP16 initializers | 8 |
+| Mean normalized precision drift | 9.7869e-04 |
+| Maximum normalized precision drift | 9.1944e-03 |
+| Mean drift limit | 0.002 |
+| Maximum drift limit | 0.012 |
+| Mean drift guard | PASS |
+| Maximum drift guard | PASS |
+| FP16 mean NRMSE | 0.050473 |
+| FP16 mean R² | 0.996954 |
+
+CoreML latency:
+
+| Batch | FP32 median | FP16 median | Median FP32/FP16 ratio | FP16 faster runs |
+|---:|---:|---:|---:|---:|
+| 1 | 0.038480 ms | 0.038685 ms | 0.995× | 2/5 |
+| 32 | 0.040879 ms | 0.041161 ms | 1.009× | 4/5 |
+| 256 | 0.051657 ms | 0.059952 ms | 0.862× | 0/5 |
+
+### Conclusion
+
+FP16 preserved predictive quality and reduced serialized model size by
+approximately 24.4%.
+
+No robust FP16 latency improvement was observed:
+
+- batches 1 and 32 were effectively at parity;
+- FP16 was consistently slower at batch 256.
+
+The CoreML benchmark uses `MLComputeUnits=ALL` and therefore does not establish
+exclusive Apple Neural Engine execution.
 
 ---
 
 ## Milestone 5 — INT8 quantization
 
-**Status: PLANNED**
+**Status: NEXT**
 
 ### Goal
 
@@ -212,41 +227,53 @@ Evaluate the accuracy-size-latency tradeoff of INT8 deployment.
 
 ### Work items
 
-- choose dynamic versus static quantization based on operator/runtime support;
-- define a calibration split that does not leak held-out test information;
-- freeze calibration configuration;
-- quantize model;
-- validate graph/operator support;
-- run 900-row held-out equivalence/error analysis;
-- compare FP32, FP16, and INT8 target-level performance;
-- compare artifact sizes;
-- run repeated batch-1/32/256 latency benchmarks;
-- record unsupported operators or fallback behavior.
+1. Determine supported quantization behavior for the validated neural graph.
+2. Select dynamic or static quantization based on runtime/operator support.
+3. Define a calibration subset without using held-out test targets.
+4. Freeze calibration configuration and seed.
+5. Produce a versioned INT8 artifact.
+6. Validate the quantized graph.
+7. Run all 900 held-out test rows.
+8. Separate provider drift, quantization drift, and predictive error.
+9. Record per-target physical-unit drift.
+10. Compare serialized FP32, FP16, and INT8 sizes.
+11. Benchmark batches 1, 32, and 256.
+12. Repeat latency measurements.
+13. Record fallback or unsupported operators.
+14. Add CLI, tests, and reproducible result artifacts.
 
 ### Scientific guardrails
 
 - never calibrate on the test set;
-- report target-level drift, not only one aggregate metric;
-- separate quantization error from original surrogate predictive error;
-- report runtime execution provider and hardware.
+- report target-level drift;
+- distinguish quantization error from original model error;
+- report provider and hardware;
+- do not assume INT8 is faster before measuring it.
+
+Recommended branch after the current FP16 work is merged:
+
+```text
+feat/neural-int8-evaluation
+```
 
 ---
 
-## Milestone 6 — reduced-precision model selection
+## Milestone 6 — unified reduced-precision model selection
 
 **Status: PLANNED**
 
-Create a unified comparison table:
+Create a unified comparison such as:
 
 | Runtime / precision | Accuracy drift | Artifact size | Batch-1 latency | Batch-32 latency | Batch-256 latency |
 |---|---:|---:|---:|---:|---:|
-| PyTorch FP32 | reference | measured | measured | measured | measured |
-| ORT FP32 | measured | measured | measured | measured | measured |
-| ORT FP16 | planned | planned | planned | planned | planned |
-| ORT INT8 | planned | planned | planned | planned | planned |
+| PyTorch FP32 CPU | reference | measured | measured | measured | measured |
+| ORT FP32 CPU | measured | 25,420 B | measured | measured | measured |
+| ORT/CoreML FP32 | measured | 25,420 B | measured | measured | measured |
+| ORT/CoreML FP16 | measured | 19,221 B | measured | measured | measured |
+| INT8 | planned | planned | planned | planned | planned |
 
-Selection should depend on deployment constraints rather than one universal
-"best" model.
+Model/runtime selection should depend on deployment constraints rather than a
+single universal "best" model.
 
 ---
 
@@ -254,23 +281,23 @@ Selection should depend on deployment constraints rather than one universal
 
 **Status: PLANNED**
 
-### Goals
+Goals:
 
 - establish a reproducible path from validated ONNX to Qualcomm tooling;
-- document model/operator compatibility;
+- document model and operator compatibility;
 - compile or convert using supported QNN tooling;
-- record target SoC/runtime details;
-- separate host-side preprocessing from accelerator graph execution;
-- compare numerical parity against the FP32 reference.
+- record target SoC and runtime;
+- separate host-side preprocessing from accelerator execution;
+- compare numerical parity against the validated FP32 reference.
 
-### Deliverables
+Deliverables:
 
-- QNN conversion script or documented reproducible command;
+- conversion script or documented reproducible command;
 - target-device configuration;
-- conversion logs;
 - compatibility report;
+- conversion logs;
 - parity report;
-- hardware-specific latency report.
+- device-specific latency report.
 
 ---
 
@@ -283,8 +310,8 @@ Measure on supported Snapdragon hardware:
 - warm-start latency;
 - repeated batch latency;
 - throughput;
-- memory footprint where available;
-- power/energy proxy where tooling supports it;
+- memory footprint when available;
+- power or energy proxy where tooling supports it;
 - fallback operators;
 - sustained versus burst behavior.
 
@@ -296,26 +323,19 @@ No NPU performance claim should be made before a real supported-device run.
 
 **Status: PLANNED**
 
-Extend beyond in-distribution test performance.
-
 Candidate studies:
 
 - design-range extrapolation;
 - passenger-capacity extrapolation;
 - unseen combinations near feasibility boundaries;
 - propulsion-architecture subgroup analysis;
-- noisy input perturbation;
-- missing or degraded input scenarios;
+- input perturbation;
+- missing or degraded inputs;
 - uncertainty under distribution shift;
 - optimizer-induced out-of-distribution queries.
 
-Deliverables:
-
-- shift definitions;
-- reproducible stress datasets;
-- target-level error analysis;
-- calibration/equivalence reports;
-- failure-mode documentation.
+Deliverables should include reproducible shift definitions, stress datasets,
+target-level metrics, calibration results, and documented failure modes.
 
 ---
 
@@ -324,17 +344,6 @@ Deliverables:
 **Status: PLANNED**
 
 Longer-term objective:
-
-Select a model/runtime based on requirements such as:
-
-- maximum allowable accuracy drift;
-- batch size;
-- memory budget;
-- latency target;
-- hardware availability;
-- safety/feasibility constraints.
-
-Example:
 
 ```text
 deployment requirements
@@ -352,39 +361,35 @@ hardware-aware selection policy
 deployment decision + provenance
 ```
 
+Candidate requirements include:
+
+- maximum allowable accuracy drift;
+- batch size;
+- memory budget;
+- latency target;
+- hardware availability;
+- feasibility constraints.
+
 ---
-
-## Immediate next branch after FP32 ONNX merge
-
-Recommended branch:
-
-```text
-feat/neural-fp16-evaluation
-```
-
-Recommended first tasks:
-
-1. start from clean `main`;
-2. reproduce FP32 ONNX reference artifacts;
-3. investigate supported FP16 conversion behavior;
-4. implement a separate conversion module;
-5. add unit tests before benchmarking;
-6. validate on the full 900-row held-out test set;
-7. only then add latency and size claims.
 
 ## Release strategy
 
-Suggested progression:
+Current progression:
 
 ```text
-0.2.0  compact PyTorch surrogate
+0.1.0  scientific-ML foundation
   |
-  +-- unreleased FP32 neural ONNX deployment
+0.2.0  compact PyTorch neural surrogate
   |
-  +-- FP16 / INT8 deployment studies
+  +-- FP32 neural ONNX deployment        complete / unreleased
+  |
+  +-- FP16 deployment study              complete / unreleased
+  |
+  +-- INT8 study                         next
   |
   v
-0.3.0  deployment-runtime milestone
+future deployment-runtime release boundary
 ```
 
-Do not bump the public version until the intended release boundary is decided.
+Do not bump the public version until the intended release boundary is
+explicitly selected.

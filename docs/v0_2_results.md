@@ -306,7 +306,7 @@ The validated model:
 - supports MPS as an alternate execution path;
 - is exposed through the public EdgeGenBench CLI.
 
-The next milestone is neural deployment conversion:
+At the v0.2.0 release boundary, the next milestone was neural deployment conversion:
 
 ```text
 PyTorch FP32
@@ -336,7 +336,33 @@ Snapdragon NPU
 - Results represent one design-space configuration.
 - Latency measurements are machine-specific.
 - CPU and MPS latency are not universal hardware comparisons.
-- Neural ONNX export is not yet implemented.
-- FP16 and INT8 results are not yet available.
-- Qualcomm QNN and Snapdragon NPU results are not yet available.
+- At the v0.2.0 release boundary, neural ONNX deployment and reduced-precision
+  deployment had not yet been validated.
+- Qualcomm QNN and Snapdragon NPU execution were not part of the v0.2.0
+  release.
 - The benchmark is not a certified aircraft-design or safety-critical system.
+
+## Subsequent deployment work
+
+The v0.2.0 document above records the compact PyTorch-surrogate milestone.
+Deployment capabilities developed after that release are documented separately.
+
+Subsequent unreleased work has now validated:
+
+- FP32 PyTorch-to-ONNX export;
+- ONNX Runtime CPU numerical equivalence on all 900 held-out test rows;
+- corrected PyTorch CPU versus ONNX Runtime CPU benchmarking;
+- reproducible FP32-to-FP16 ONNX conversion;
+- FP16 provider- and precision-drift evaluation;
+- static-batch CoreML execution-provider benchmarking;
+- public FP32 and FP16 neural deployment CLI commands.
+
+See:
+
+- [`neural_onnx_results.md`](neural_onnx_results.md) for the FP32 ONNX
+  deployment study;
+- [`neural_fp16_results.md`](neural_fp16_results.md) for the FP16
+  reduced-precision study.
+
+INT8 quantization, Qualcomm QNN deployment, and Snapdragon NPU profiling remain
+future milestones.

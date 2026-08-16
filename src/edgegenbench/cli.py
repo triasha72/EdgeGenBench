@@ -12,6 +12,12 @@ from edgegenbench.deployment.benchmark import (
 from edgegenbench.deployment.neural_benchmark import (
     benchmark_neural_onnx,
 )
+from edgegenbench.deployment.neural_fp16 import (
+    export_neural_surrogate_fp16,
+)
+from edgegenbench.deployment.neural_fp16_benchmark import (
+    benchmark_neural_fp16,
+)
 from edgegenbench.deployment.neural_onnx_export import (
     export_neural_surrogate_onnx,
 )
@@ -322,7 +328,7 @@ def train_feasibility(
         "--max-false-safe-rate",
         min=0.0,
         max=1.0,
-        help=("Maximum validation false-safe rate used for threshold selection."),
+        help="Maximum validation false-safe rate used for threshold selection.",
     ),
 ) -> None:
     """Train and evaluate the feasibility classifier."""
@@ -682,13 +688,13 @@ def benchmark_neural_onnx_command(
         500,
         "--repeats",
         min=1,
-        help=("Measured latency repetitions per runtime and batch size."),
+        help="Measured latency repetitions per runtime and batch size.",
     ),
     warmups: int = typer.Option(
         50,
         "--warmups",
         min=0,
-        help=("Warmup iterations per runtime and batch size."),
+        help="Warmup iterations per runtime and batch size.",
     ),
 ) -> None:
     """Benchmark PyTorch CPU against ONNX Runtime CPU."""
@@ -719,4 +725,164 @@ def benchmark_neural_onnx_command(
     )
     typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
     typer.echo(f"Latency report: {artifacts.latency_path}")
+    typer.echo(f"Summary: {artifacts.summary_path}")
+
+
+@app.command(name="export-neural-fp16")
+def export_neural_fp16_command(
+    fp32_model: Path = typer.Option(
+        Path("artifacts/neural_onnx/neural_surrogate.onnx"),
+        "--fp32-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Canonical dynamic FP32 neural ONNX graph.",
+    ),
+    fp32_metadata: Path = typer.Option(
+        Path("artifacts/neural_onnx/metadata.json"),
+        "--fp32-metadata",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Metadata for the canonical FP32 neural ONNX graph.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_fp16"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for FP16 neural ONNX artifacts.",
+    ),
+) -> None:
+    """Convert the canonical neural ONNX graph from FP32 to FP16."""
+    artifacts = export_neural_surrogate_fp16(
+        fp32_model_path=fp32_model,
+        fp32_metadata_path=fp32_metadata,
+        output_dir=output_dir,
+    )
+
+    typer.echo(f"Input dimension: {artifacts.input_dim}")
+    typer.echo(f"Output dimension: {artifacts.output_dim}")
+    typer.echo(f"FP32 model size: {artifacts.fp32_model_size_bytes} bytes")
+    typer.echo(f"FP16 model size: {artifacts.fp16_model_size_bytes} bytes")
+    typer.echo(f"Model-size reduction: {artifacts.size_reduction_percent:.2f}%")
+    typer.echo(f"FP16 initializer count: {artifacts.fp16_initializer_count}")
+    typer.echo(f"FP16 model: {artifacts.onnx_path}")
+    typer.echo(f"Metadata: {artifacts.metadata_path}")
+
+
+@app.command(name="benchmark-neural-fp16")
+def benchmark_neural_fp16_command(
+    dataset: Path = typer.Option(
+        Path("data/raw/edgegenbench_v0_1.csv"),
+        "--dataset",
+        "-d",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Benchmark dataset containing the neural test split.",
+    ),
+    preprocessing: Path = typer.Option(
+        Path("artifacts/neural_surrogate/preprocessing.npz"),
+        "--preprocessing",
+        "-p",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Frozen neural preprocessing artifact.",
+    ),
+    fp32_model: Path = typer.Option(
+        Path("artifacts/neural_onnx/neural_surrogate.onnx"),
+        "--fp32-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Canonical dynamic FP32 neural ONNX graph.",
+    ),
+    fp16_model: Path = typer.Option(
+        Path("artifacts/neural_fp16/neural_surrogate_fp16.onnx"),
+        "--fp16-model",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Converted dynamic FP16 neural ONNX graph.",
+    ),
+    output_dir: Path = typer.Option(
+        Path("artifacts/neural_fp16_benchmark"),
+        "--output-dir",
+        "-o",
+        file_okay=False,
+        dir_okay=True,
+        help="Directory for FP16 accuracy and CoreML benchmark artifacts.",
+    ),
+    runs: int = typer.Option(
+        5,
+        "--runs",
+        min=1,
+        help="Independent paired FP32/FP16 latency runs.",
+    ),
+    repeats: int = typer.Option(
+        500,
+        "--repeats",
+        min=1,
+        help="Measured latency repetitions per precision and batch size.",
+    ),
+    warmups: int = typer.Option(
+        50,
+        "--warmups",
+        min=0,
+        help="Warmup iterations per precision and batch size.",
+    ),
+    max_mean_normalized_drift: float = typer.Option(
+        0.002,
+        "--max-mean-normalized-drift",
+        min=0.0,
+        help="EdgeGenBench regression ceiling for mean normalized FP16 drift.",
+    ),
+    max_normalized_drift: float = typer.Option(
+        0.012,
+        "--max-normalized-drift",
+        min=0.0,
+        help="EdgeGenBench regression ceiling for maximum normalized FP16 drift.",
+    ),
+) -> None:
+    """Benchmark FP32 and FP16 neural ONNX models on CoreML."""
+    artifacts = benchmark_neural_fp16(
+        dataset_path=dataset,
+        preprocessing_path=preprocessing,
+        fp32_model_path=fp32_model,
+        fp16_model_path=fp16_model,
+        output_dir=output_dir,
+        batch_sizes=(
+            1,
+            32,
+            256,
+        ),
+        runs=runs,
+        repeats=repeats,
+        warmups=warmups,
+        max_mean_normalized_drift=max_mean_normalized_drift,
+        max_normalized_drift=max_normalized_drift,
+    )
+
+    typer.echo(f"Test rows: {artifacts.test_rows}")
+    typer.echo(f"Mean normalized FP16 drift: {artifacts.normalized_mean_absolute_difference:.10e}")
+    typer.echo(
+        f"Maximum normalized FP16 drift: {artifacts.normalized_max_absolute_difference:.10e}"
+    )
+    typer.echo(f"Mean drift within limit: {artifacts.mean_drift_within_limit}")
+    typer.echo(f"Maximum drift within limit: {artifacts.max_drift_within_limit}")
+    typer.echo(f"FP16 mean NRMSE: {artifacts.fp16_mean_nrmse_std:.10f}")
+    typer.echo(f"FP16 mean R2: {artifacts.fp16_mean_r2:.10f}")
+    typer.echo(f"Equivalence report: {artifacts.equivalence_path}")
+    typer.echo(f"Task metrics: {artifacts.task_metrics_path}")
+    typer.echo(f"Latency runs: {artifacts.latency_runs_path}")
+    typer.echo(f"Latency summary: {artifacts.latency_summary_path}")
     typer.echo(f"Summary: {artifacts.summary_path}")

@@ -3,7 +3,8 @@
 [![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
 
 **Scientific machine learning, uncertainty-aware aircraft-design optimization,
-and hardware-aware edge inference for hybrid-electric and hydrogen regional-aircraft studies.**
+and hardware-aware edge inference for hybrid-electric and hydrogen
+regional-aircraft studies.**
 
 ## Overview
 
@@ -11,20 +12,21 @@ EdgeGenBench is an independent, reproducible benchmark for studying how
 machine-learning surrogates behave inside early aircraft-design workflows and
 how trained models translate into deployable edge-inference systems.
 
-The project connects:
+The project combines:
 
 - synthetic physics-based aircraft-design data generation;
 - classical multi-output surrogate modeling;
 - compact PyTorch neural surrogate modeling;
-- leakage-safe feature and target normalization;
-- validation-based early stopping;
+- leakage-safe preprocessing;
+- validation-based model selection and early stopping;
 - uncertainty quantification;
-- safety-conscious feasibility classification;
+- feasibility classification;
 - constrained multi-objective optimization;
 - physics-based validation;
-- ONNX deployment;
+- classical and neural ONNX deployment;
 - numerical-equivalence testing;
-- CPU and accelerator inference benchmarking;
+- FP16 reduced-precision evaluation;
+- CPU and CoreML execution-provider benchmarking;
 - reproducible testing and continuous integration.
 
 EdgeGenBench uses synthetic or public information only. It does not contain
@@ -35,26 +37,31 @@ proprietary aircraft-manufacturer data, software, or design information.
 ### Released: EdgeGenBench v0.2.0
 
 Version 0.2.0 added the compact PyTorch multi-output surrogate while retaining
-the complete v0.1 scientific-ML, optimization, and classical ONNX workflow.
+the complete v0.1 scientific-ML, optimization, uncertainty, and classical ONNX
+workflow.
 
-### Unreleased deployment work
+### Unreleased neural-deployment work
 
-The current development branch adds the first neural deployment milestone:
+The current development work adds:
 
-- checkpoint reconstruction from stored architecture metadata;
+- checkpoint reconstruction from stored neural architecture metadata;
 - PyTorch-to-ONNX FP32 export;
 - dynamic ONNX batch dimensions;
 - ONNX graph validation;
 - ONNX Runtime CPU inference;
-- frozen-preprocessor reuse;
 - held-out PyTorch-to-ONNX numerical-equivalence validation;
-- physical-unit equivalence validation;
-- paired PyTorch CPU versus ONNX Runtime CPU benchmarking;
-- repeated local runtime measurements;
-- public `export-neural-onnx` CLI support;
-- public `benchmark-neural-onnx` CLI support.
+- corrected paired PyTorch CPU versus ONNX Runtime CPU benchmarking;
+- FP32-to-FP16 ONNX conversion;
+- FP32 external I/O with internal FP16 weights;
+- FP16 graph validation;
+- static batch specialization for CoreML;
+- held-out provider-drift and precision-drift analysis;
+- FP16 predictive-quality regression guards;
+- repeated FP32 versus FP16 CoreML benchmarking;
+- public FP32 and FP16 deployment CLI commands.
 
-FP16, INT8, Qualcomm QNN, and Snapdragon NPU deployment remain future work.
+INT8, Qualcomm QNN, Snapdragon NPU profiling, and distribution-shift studies
+remain future work.
 
 ## Benchmark problem
 
@@ -62,15 +69,17 @@ The benchmark represents an early regional-aircraft design study.
 
 ### Design variables
 
-- Passenger capacity
-- Design range
-- Cruise speed
-- Battery specific energy
-- Hydrogen storage efficiency
-- Hybridization ratio
-- Propulsion architecture
+The design space contains:
 
-Supported propulsion architectures:
+- passenger capacity;
+- design range;
+- cruise speed;
+- battery specific energy;
+- hydrogen storage efficiency;
+- hybridization ratio;
+- propulsion architecture.
+
+Supported propulsion architectures are:
 
 - conventional turboprop;
 - parallel hybrid;
@@ -78,11 +87,11 @@ Supported propulsion architectures:
 - fuel-cell electric.
 
 The six numerical variables plus four one-hot propulsion categories produce a
-ten-dimensional encoded input for the neural surrogate.
+ten-dimensional encoded neural input.
 
 ### Predicted targets
 
-All surrogate models predict:
+All regression surrogates predict:
 
 - estimated takeoff mass;
 - mission energy;
@@ -90,9 +99,6 @@ All surrogate models predict:
 - lifecycle-emissions proxy;
 - operating-cost proxy;
 - noise proxy.
-
-The synthetic physics model also produces feasibility labels and supporting
-engineering quantities used by the optimization and validation workflows.
 
 ## Dataset
 
@@ -110,7 +116,7 @@ The generated dataset has an overall physics-labeled feasible fraction of
 approximately 32.6%.
 
 Neural preprocessing statistics are fitted **only on the training partition**.
-Validation and test rows use the frozen training statistics.
+Validation and test rows reuse the frozen training statistics.
 
 ## Compact neural surrogate
 
@@ -150,23 +156,11 @@ The model contains **3,414 trainable parameters**.
 | Architecture | 10 → 64 → 32 → 16 → 6 |
 | Trainable parameters | 3,414 |
 | Best epoch | 141 |
-| Training completion epoch | 171 |
 | CPU mean test NRMSE | **0.050425** |
 | CPU mean test R² | **0.996956** |
-| MPS mean test NRMSE | 0.050433 |
-| MPS mean test R² | 0.996955 |
+| MPS reference mean test NRMSE | 0.050433 |
+| MPS reference mean test R² | 0.996955 |
 | PyTorch checkpoint size | **16,881 bytes** |
-
-Reference target-level results:
-
-| Target | NRMSE | R² |
-|---|---:|---:|
-| Estimated takeoff mass | 0.073473 | 0.994602 |
-| Mission energy | 0.048346 | 0.997663 |
-| Energy per passenger-km | 0.083380 | 0.993048 |
-| Lifecycle-emissions proxy | 0.035690 | 0.998726 |
-| Operating-cost proxy | 0.045074 | 0.997968 |
-| Noise proxy | 0.016633 | 0.999723 |
 
 Every target achieved held-out R² above 0.993.
 
@@ -180,34 +174,16 @@ Every target achieved held-out R² above 0.993.
 | FP32 Ridge | 0.214590 | 0.937690 | 2.53 KiB |
 
 The compact neural surrogate reduces mean NRMSE by approximately 19% relative
-to the strongest classical predictive baseline while using a much smaller
-serialized artifact.
+to the strongest classical predictive baseline.
 
 Serialized formats differ, so file-size comparisons should be interpreted as
-deployment-oriented measurements rather than pure architecture-memory
+deployment-oriented measurements rather than direct parameter-memory
 comparisons.
 
-## PyTorch CPU baseline
+## FP32 neural ONNX deployment
 
-Reference PyTorch CPU latency:
-
-| Batch | Mean batch latency | P95 batch latency | Mean sample latency |
-|---:|---:|---:|---:|
-| 1 | 0.022017 ms | 0.022585 ms | 22.017 µs |
-| 32 | 0.030655 ms | 0.031171 ms | 0.958 µs |
-| 256 | 0.048388 ms | 0.050673 ms | 0.189 µs |
-
-These values are specific to the local ARM64 macOS development environment.
-
-Apple MPS execution was also validated, but latency for this very small network
-showed substantial run-to-run variability. CPU therefore remains the primary
-local PyTorch reference runtime.
-
-## Neural ONNX deployment
-
-The compact PyTorch surrogate now exports to a dynamic-batch FP32 ONNX graph.
-
-### Exported graph
+The trained neural surrogate exports to an ONNX opset-18 graph with a dynamic
+batch dimension.
 
 ```text
 features [batch, 10]
@@ -227,15 +203,11 @@ predictions [batch, 6]
 | Input width | 10 |
 | Output width | 6 |
 | PyTorch checkpoint size | 16,881 bytes |
-| ONNX graph size | 25,420 bytes |
-| ONNX/PyTorch serialized-size ratio | 1.506× |
-
-The two serialized formats contain different metadata and should not be treated
-as direct parameter-memory equivalents.
+| FP32 ONNX graph size | 25,420 bytes |
 
 ### Held-out PyTorch ↔ ONNX Runtime equivalence
 
-All **900 held-out test rows** were evaluated through both runtimes.
+All 900 held-out test rows were evaluated through both runtimes.
 
 | Metric | Result |
 |---|---:|
@@ -245,53 +217,158 @@ All **900 held-out test rows** were evaluated through both runtimes.
 | `atol` | 1e-5 |
 | Numerical equivalence | **PASS** |
 
-Physical-unit maximum differences remained negligible:
+The conversion differences are negligible relative to the predictive error of
+the trained surrogate.
 
-| Target | Maximum absolute difference | Maximum reference-relative difference |
-|---|---:|---:|
-| Estimated takeoff mass | 0.00781250 kg | 1.151e-07 |
-| Mission energy | 0.00390625 kWh | 1.347e-07 |
-| Energy per passenger-km | 5.960e-08 | 1.697e-07 |
-| Lifecycle-emissions proxy | 0.00146484 | 2.068e-07 |
-| Operating-cost proxy | 0.00048828 USD | 1.170e-07 |
-| Noise proxy | 7.629e-06 dB | 8.260e-08 |
+## Corrected PyTorch CPU versus ONNX Runtime CPU benchmark
 
-## Repeated PyTorch CPU versus ONNX Runtime CPU benchmark
+The runtime comparison uses:
 
-The paired runtime benchmark compares the same trained network and identical
-preprocessed FP32 inputs. Preprocessing and CSV/Pandas work are intentionally
-outside the timed region.
+- the same trained network;
+- the same preprocessed FP32 inputs;
+- preprocessing outside the timed region;
+- model/session construction outside the timed region;
+- 50 warmup iterations;
+- 500 measured iterations per run;
+- three independent runs;
+- one outer `torch.inference_mode()` context around the PyTorch timing loop.
 
-Three independent local benchmark repetitions produced:
+The inference context is not entered and exited inside each timed PyTorch
+forward pass.
 
-| Run | Batch 1 ratio | Batch 32 ratio | Batch 256 ratio |
-|---:|---:|---:|---:|
-| 1 | 2.868× | 2.958× | 1.659× |
-| 2 | 3.768× | 2.818× | 1.788× |
-| 3 | 3.481× | 2.872× | 1.303× |
+Three-run aggregate results:
+
+| Batch | Median PyTorch latency | Median ORT latency | Median PyTorch/ORT ratio | Ratio range |
+|---:|---:|---:|---:|---:|
+| 1 | 0.018341 ms | **0.006157 ms** | **2.979×** | 2.715×–3.967× |
+| 32 | 0.018427 ms | **0.007984 ms** | **2.385×** | 2.078×–2.404× |
+| 256 | **0.030841 ms** | 0.033574 ms | 0.919× | 0.860×–1.079× |
 
 A ratio greater than 1 means lower ONNX Runtime mean latency.
 
+The defensible conclusion is:
+
+- ONNX Runtime shows a clear local latency advantage at batch sizes 1 and 32;
+- batch 256 is near parity and changes direction across repeated runs;
+- microsecond-scale results are workload- and machine-specific.
+
+Detailed FP32 deployment results are recorded in
+[`docs/neural_onnx_results.md`](docs/neural_onnx_results.md).
+
+## FP16 neural ONNX deployment study
+
+The validated FP32 ONNX graph is also converted to FP16 using
+`onnxconverter-common`.
+
+The conversion keeps external input/output tensors in FP32 while converting
+eligible internal parameters to FP16.
+
+### FP16 artifact
+
+| Property | FP32 | FP16 |
+|---|---:|---:|
+| External input width | 10 | 10 |
+| External output width | 6 | 6 |
+| External I/O precision | FP32 | FP32 |
+| Internal precision | FP32 | FP16 |
+| FP16 initializers | — | 8 |
+| Serialized ONNX size | 25,420 B | 19,221 B |
+
+The FP16 graph reduces serialized ONNX size by **24.39%**.
+
+### Held-out FP16 precision drift
+
+All 900 held-out test rows were evaluated.
+
+| Metric | Result | Regression ceiling |
+|---|---:|---:|
+| Mean normalized FP32-CoreML ↔ FP16-CoreML difference | **9.7869e-04** | 0.002 |
+| Maximum normalized FP32-CoreML ↔ FP16-CoreML difference | **9.1944e-03** | 0.012 |
+| Mean-drift guard | **PASS** | — |
+| Maximum-drift guard | **PASS** | — |
+
+FP32 CPU ↔ FP32 CoreML provider drift was substantially smaller:
+
+| Metric | Result |
+|---|---:|
+| Mean normalized provider difference | 1.4848e-07 |
+| Maximum normalized provider difference | 1.4305e-06 |
+
+This separates ordinary provider-level numerical variation from the much larger,
+but still bounded, FP16 precision effect.
+
+### FP16 predictive quality
+
+| Metric | FP32 reference | FP16 |
+|---|---:|---:|
+| Mean test NRMSE | 0.050433 | **0.050473** |
+| Mean test R² | 0.996955 | **0.996954** |
+
+FP16 therefore preserves essentially the same held-out predictive quality while
+reducing serialized model size.
+
+Target-level FP16 results:
+
+| Target | NRMSE | R² |
+|---|---:|---:|
+| Estimated takeoff mass | 0.073412 | 0.994611 |
+| Mission energy | 0.048342 | 0.997663 |
+| Energy per passenger-km | 0.083341 | 0.993054 |
+| Lifecycle-emissions proxy | 0.035779 | 0.998720 |
+| Operating-cost proxy | 0.045180 | 0.997959 |
+| Noise proxy | 0.016787 | 0.999718 |
+
+### FP32 versus FP16 CoreML benchmark
+
+For CoreML evaluation, dynamic models are reproducibly specialized to static
+batch sizes 1, 32, and 256.
+
+The ONNX Runtime provider configuration is:
+
+```text
+CoreMLExecutionProvider
+ModelFormat=MLProgram
+MLComputeUnits=ALL
+RequireStaticInputShapes=1
+EnableOnSubgraphs=0
+
+CPUExecutionProvider fallback
+```
+
+Production benchmark settings:
+
+```text
+runs    = 5
+repeats = 500
+warmups = 50
+```
+
 Median results:
 
-| Batch | Median PyTorch latency | Median ORT latency | Median PyTorch/ORT ratio |
-|---:|---:|---:|---:|
-| 1 | 0.051814 ms | **0.014886 ms** | **3.481×** |
-| 32 | 0.065456 ms | **0.022665 ms** | **2.872×** |
-| 256 | 0.103179 ms | **0.060500 ms** | **1.659×** |
+| Batch | FP32 median | FP16 median | Median FP32/FP16 ratio | FP16 faster runs |
+|---:|---:|---:|---:|---:|
+| 1 | 0.038480 ms | 0.038685 ms | 0.995× | 2/5 |
+| 32 | 0.040879 ms | 0.041161 ms | 1.009× | 4/5 |
+| 256 | **0.051657 ms** | 0.059952 ms | 0.862× | 0/5 |
 
-ONNX Runtime produced lower mean latency in every repeat at all three tested
-batch sizes. Absolute microsecond-scale timings varied between runs, so these
-results are workload- and machine-specific rather than universal runtime
-claims.
+Interpretation:
 
-Detailed deployment results are recorded in
-[`docs/neural_onnx_results.md`](docs/neural_onnx_results.md).
+- batch 1 is effectively at parity;
+- batch 32 is effectively at parity;
+- FP16 is consistently slower at batch 256 in this experiment;
+- FP16 should therefore not be described as a universal latency optimization.
+
+`MLComputeUnits=ALL` allows CoreML to select supported compute units. These
+measurements do **not** independently prove exclusive Apple Neural Engine
+execution.
+
+Detailed FP16 results are recorded in
+[`docs/neural_fp16_results.md`](docs/neural_fp16_results.md).
 
 ## v0.1 scientific-ML results
 
-Version 0.1 established the complete classical surrogate, uncertainty,
-optimization, physics-validation, and classical ONNX workflow.
+Version 0.1 established the classical surrogate, uncertainty, optimization,
+physics-validation, and classical ONNX workflow.
 
 ### Classical surrogate comparison
 
@@ -325,25 +402,8 @@ optimization, physics-validation, and classical ONNX workflow.
 | Pareto-front feasibility agreement | 100% |
 | Representative-design feasibility agreement | 100% |
 
-The optimization path uses a conservative, physics-validated feasibility
+The optimization path uses a conservative physics-validated feasibility
 threshold of 0.50, separate from the ordinary classifier threshold of 0.30.
-
-### Classical ONNX deployment
-
-| Result | Value |
-|---|---:|
-| Classifier decision agreement | 100% |
-| Maximum classifier probability error | 1.82 × 10⁻⁷ |
-| Maximum surrogate absolute difference | 0.01059 |
-| ONNX surrogate size | 108.956 MiB |
-| ONNX classifier size | 2.728 MiB |
-
-At batch size 1:
-
-| Model | Scikit-learn | ONNX Runtime |
-|---|---:|---:|
-| Surrogate | 13.795 ms | **0.305 ms** |
-| Feasibility classifier | 14.787 ms | **0.311 ms** |
 
 ## System workflow
 
@@ -354,78 +414,57 @@ Versioned configuration
 Synthetic physics model
         |
         v
-Dataset generation
+6,000-case benchmark dataset
         |
         v
-Deterministic train / validation / test partitions
+deterministic train / validation / test split
         |
-        +--------------------------------------+
-        |                                      |
-        v                                      v
-Classical surrogate branch               Neural surrogate branch
-        |                                      |
-        +--> Ridge                              +--> train-only normalization
-        +--> Random Forest                      +--> compact PyTorch MLP
-        +--> HistGradientBoosting               +--> AdamW + early stopping
-        |                                      +--> checkpoint reconstruction
-        |                                      +--> PyTorch CPU / MPS
-        |                                      +--> FP32 ONNX export
-        |                                      +--> ORT equivalence
-        |                                      +--> repeated CPU benchmark
-        |                                      |
-        +------------------+-------------------+
-                           |
-                           v
-                 Held-out test evaluation
-                           |
-                           v
-                Uncertainty quantification
-                           |
-                           v
-                 Feasibility classifier
-                           |
-                           v
-              Conservative optimization gate
-                           |
-                           v
-             Multi-objective optimization
-                           |
-                           v
-                 Physics validation
+        +-----------------------------------+
+        |                                   |
+        v                                   v
+Classical branch                       Neural branch
+        |                                   |
+Ridge / RF / HGB                      compact PyTorch MLP
+        |                                   |
+uncertainty / feasibility             FP32 ONNX
+        |                                   |
+optimization                          ORT CPU evaluation
+        |                                   |
+physics validation                    FP16 ONNX
+                                            |
+                                      static CoreML models
+                                            |
+                                precision + latency evaluation
 ```
 
 ## Installation
 
-### 1. Create a Python 3.12 environment
+### Create a Python 3.12 environment
 
 ```bash
 conda create -n edgegenbench-py312 python=3.12
 conda activate edgegenbench-py312
 ```
 
-### 2. Install development, edge, and neural dependencies
+### Install development, edge, and neural dependencies
 
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev,edge,neural]"
 ```
 
-The `edge` extra includes:
-
-- ONNX;
-- ONNX Runtime;
-- ONNX Script;
-- skl2onnx.
+The `edge` extra includes ONNX, ONNX Runtime, ONNX Script,
+`onnxconverter-common`, and `skl2onnx`.
 
 The `neural` extra provides PyTorch.
 
-### 3. Confirm installation
+### Confirm installation
 
 ```bash
 edgegenbench info
 ```
 
-## Neural workflow
+## Neural deployment workflow
 
 ### Generate data
 
@@ -443,7 +482,7 @@ edgegenbench train-neural-surrogate \
   --output-dir artifacts/neural_surrogate
 ```
 
-### Export the trained neural surrogate to ONNX
+### Export FP32 neural ONNX
 
 ```bash
 edgegenbench export-neural-onnx \
@@ -453,7 +492,7 @@ edgegenbench export-neural-onnx \
   --opset 18
 ```
 
-### Benchmark PyTorch CPU against ONNX Runtime CPU
+### Benchmark PyTorch CPU versus ONNX Runtime CPU
 
 ```bash
 edgegenbench benchmark-neural-onnx \
@@ -466,6 +505,34 @@ edgegenbench benchmark-neural-onnx \
   --repeats 500 \
   --warmups 50
 ```
+
+### Export FP16 neural ONNX
+
+```bash
+edgegenbench export-neural-fp16 \
+  --fp32-model artifacts/neural_onnx/neural_surrogate.onnx \
+  --fp32-metadata artifacts/neural_onnx/metadata.json \
+  --output-dir artifacts/neural_fp16
+```
+
+### Benchmark FP32 versus FP16 with CoreML
+
+```bash
+edgegenbench benchmark-neural-fp16 \
+  --dataset data/raw/edgegenbench_v0_1.csv \
+  --preprocessing artifacts/neural_surrogate/preprocessing.npz \
+  --fp32-model artifacts/neural_onnx/neural_surrogate.onnx \
+  --fp16-model artifacts/neural_fp16/neural_surrogate_fp16.onnx \
+  --output-dir artifacts/neural_fp16_benchmark \
+  --runs 5 \
+  --repeats 500 \
+  --warmups 50 \
+  --max-mean-normalized-drift 0.002 \
+  --max-normalized-drift 0.012
+```
+
+The CoreML benchmark requires an ONNX Runtime build exposing
+`CoreMLExecutionProvider`.
 
 ## Generated neural artifacts
 
@@ -482,7 +549,7 @@ artifacts/neural_surrogate/
 └── summary.json
 ```
 
-ONNX export:
+FP32 ONNX:
 
 ```text
 artifacts/neural_onnx/
@@ -490,101 +557,81 @@ artifacts/neural_onnx/
 └── neural_surrogate.onnx
 ```
 
-Deployment benchmark:
+FP16 ONNX:
 
 ```text
-artifacts/neural_onnx_benchmark/
-├── equivalence.csv
-├── latency.csv
-└── summary.json
+artifacts/neural_fp16/
+├── metadata.json
+└── neural_surrogate_fp16.onnx
 ```
 
-Generated artifacts are intentionally ignored by Git and are reproducible from
-the source workflow.
+FP16 production benchmark:
+
+```text
+artifacts/neural_fp16_benchmark/
+├── equivalence.csv
+├── task_metrics.csv
+├── latency_runs.csv
+├── latency_summary.csv
+├── summary.json
+└── runtime_models/
+    ├── fp32_batch1.onnx
+    ├── fp32_batch32.onnx
+    ├── fp32_batch256.onnx
+    ├── fp16_batch1.onnx
+    ├── fp16_batch32.onnx
+    └── fp16_batch256.onnx
+```
+
+Generated benchmark artifacts are intentionally ignored by Git and are
+reproducible from source.
 
 ## Validation
 
-Current neural deployment validation includes:
+The neural deployment workflow is covered by:
 
 - checkpoint reconstruction tests;
 - preprocessing serialization tests;
-- neural training tests;
-- ONNX export tests;
-- dynamic batch tests;
-- ONNX Runtime inference tests;
-- normalized parity tests;
-- physical-unit parity tests;
-- benchmark artifact tests;
-- CLI registration tests.
+- training tests;
+- FP32 ONNX export tests;
+- dynamic-batch inference tests;
+- PyTorch/ORT equivalence tests;
+- corrected runtime benchmark tests;
+- FP16 conversion tests;
+- static-batch specialization tests;
+- FP16 drift-regression tests;
+- CoreML integration tests when the provider is available;
+- CLI registration and parser-level option tests.
 
-The neural suite contains **27 passing tests** at the FP32 ONNX milestone.
-The complete repository formatting, lint, and test suite also pass locally.
+Local validation includes:
 
-## Documentation
-
-- [`docs/results.md`](docs/results.md): v0.1 scientific-ML results
-- [`docs/v0_2_results.md`](docs/v0_2_results.md): v0.2 neural-training results
-- [`docs/neural_onnx_results.md`](docs/neural_onnx_results.md): FP32 neural ONNX deployment results
-- [`ROADMAP.md`](ROADMAP.md): deployment and evaluation roadmap
-- [`CHANGELOG.md`](CHANGELOG.md): release history and unreleased work
-
-## Roadmap summary
-
-Completed:
-
-```text
-v0.1 scientific-ML pipeline
-        ↓
-v0.2 compact PyTorch surrogate
-        ↓
-FP32 PyTorch → ONNX
-        ↓
-900-row equivalence validation
-        ↓
-repeated PyTorch CPU ↔ ORT CPU benchmark
+```bash
+ruff format --check .
+ruff check .
+pytest -q tests/neural
+pytest -q
+python -m pip check
+git diff --check
 ```
-
-Next:
-
-```text
-FP16 feasibility + equivalence
-        ↓
-INT8 quantization + calibration
-        ↓
-accuracy / size / latency comparison
-        ↓
-Qualcomm QNN integration
-        ↓
-Snapdragon NPU profiling
-        ↓
-distribution-shift / extrapolation evaluation
-```
-
-See [`ROADMAP.md`](ROADMAP.md) for the detailed plan.
-
-## Reproducibility
-
-The project emphasizes:
-
-- deterministic dataset generation;
-- fixed train/validation/test partitions;
-- training-only preprocessing fits;
-- explicit checkpoint metadata;
-- versioned configuration;
-- reproducible CLI workflows;
-- generated deployment metadata;
-- automated test coverage;
-- CI validation;
-- explicit separation of measured results from planned work.
 
 ## Limitations
 
-- The benchmark uses synthetic regional-aircraft design data.
-- Results represent one design-space configuration.
-- Local latency measurements are machine-specific.
-- Microsecond-scale timings are sensitive to operating-system scheduling and runtime state.
-- PyTorch and ONNX serialized sizes are not directly equivalent formats.
-- MPS timing is not used as a universal CPU-versus-GPU comparison.
-- FP16 and INT8 deployment are not yet validated.
-- Qualcomm QNN and Snapdragon NPU profiling are not yet validated.
-- EdgeGenBench is not a certified aircraft-design or safety-critical system.
+- The aircraft-design data are synthetic.
+- This project is not a certified aircraft-design or safety-critical system.
+- Runtime measurements are hardware- and environment-specific.
+- Microsecond-scale benchmarks are sensitive to runtime and operating-system
+  state.
+- PyTorch and ONNX serialized files are different formats.
+- CoreML `MLComputeUnits=ALL` does not prove exclusive ANE execution.
+- FP16 reduced serialized size but did not provide a universal latency
+  improvement in the measured workload.
+- INT8 deployment has not yet been validated.
+- Qualcomm QNN and Snapdragon NPU execution have not yet been validated.
+
+## Roadmap
+
+The next reduced-precision milestone is INT8 quantization, followed by unified
+precision/runtime comparison and hardware-specific Qualcomm QNN / Snapdragon
+profiling.
+
+See [`ROADMAP.md`](ROADMAP.md) for the detailed progression.
