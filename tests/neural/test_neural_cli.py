@@ -489,3 +489,29 @@ def test_root_help_lists_int8_commands() -> None:
     assert "export-neural-int8" in output
 
     assert "benchmark-neural-int8" in output
+
+
+def test_neural_deployment_selection_command_is_registered() -> None:
+    """Verify that deployment-aware neural model selection is exposed through the CLI."""
+    result = runner.invoke(
+        app,
+        [
+            "select-neural-deployment",
+            "--help",
+        ],
+    )
+
+    assert result.exit_code == 0
+
+    output = _strip_ansi(result.stdout)
+
+    assert "Select a validated neural deployment candidate under explicit constraints." in output
+    assert "--batch-size" in output
+    assert "--policy" in output
+    assert "--max-latency-ms" in output
+    assert "--max-model-size-mb" in output
+    assert "--min-r2" in output
+    assert "--max-nrmse-std" in output
+    assert "--max-normalized-drift" in output
+    assert "--provider" in output
+    assert "--output-dir" in output
