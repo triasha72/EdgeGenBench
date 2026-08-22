@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from edgegenbench.deployment.qualcomm_ai_hub import (
+    assess_qualcomm_int8_candidate,
     calculate_runtime_parity,
     collect_compute_units,
     qnn_graph_option,
@@ -135,3 +136,70 @@ def test_runtime_parity_rejects_shape_mismatch() -> None:
 
     with pytest.raises(ValueError, match="Prediction-shape mismatch"):
         calculate_runtime_parity(reference, candidate)
+
+
+def test_qualcomm_int8_gate_accepts_complete_measured_evidence() -> None:
+    parity = calculate_runtime_parity(
+        np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+        np.asarray([[1.001, 2.001], [3.001, 4.001]], dtype=np.float32),
+    )
+    profiles = tuple(
+        summarize_profile(
+            {
+                "execution_summary": {
+                    "estimated_inference_time": latency,
+                    "estimated_inference_peak_memory": 120_000_000,
+                },
+                "execution_detail": [{"compute_unit": "NPU"} for _ in range(9)],
+            },
+            batch_size=batch,
+        )
+        for batch, latency in ((1, 30), (32, 35), (256, 60))
+    )
+
+    result = assess_qualcomm_int8_candidate(
+        source_model_sha256="a" * 64,
+        quantized_model_sha256="b" * 64,
+        calibration_partition="train",
+        calibration_sample_count=4200,
+        profiles=profiles,
+        parity=parity,
+    )
+
+    assert result.accepted is True
+    assert result.rejection_reasons == ()
+    assert result.profiled_batch_sizes == (1, 32, 256)
+
+
+def test_qualcomm_int8_gate_rejects_leakage_and_incomplete_placement() -> None:
+    parity = calculate_runtime_parity(
+        np.asarray([[0.0], [1.0]], dtype=np.float32),
+        np.asarray([[0.0], [1.0]], dtype=np.float32),
+    )
+    profile = summarize_profile(
+        {
+            "execution_summary": {
+                "estimated_inference_time": 30,
+                "estimated_inference_peak_memory": 120_000_000,
+            },
+            "execution_detail": [
+                {"compute_unit": "NPU"},
+                {"compute_unit": "CPU"},
+            ],
+        },
+        batch_size=1,
+    )
+
+    result = assess_qualcomm_int8_candidate(
+        source_model_sha256="a" * 64,
+        quantized_model_sha256="b" * 64,
+        calibration_partition="test",
+        calibration_sample_count=900,
+        profiles=(profile,),
+        parity=parity,
+    )
+
+    assert result.accepted is False
+    assert any("training partition" in reason for reason in result.rejection_reasons)
+    assert any("required batch" in reason for reason in result.rejection_reasons)
+    assert any("exclusive NPU" in reason for reason in result.rejection_reasons)

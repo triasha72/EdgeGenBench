@@ -44,6 +44,81 @@ class QnnProfileSummary:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class QualcommInt8Acceptance:
+    """Evidence gate for a measured Qualcomm-native INT8 candidate."""
+
+    source_model_sha256: str
+    quantized_model_sha256: str
+    calibration_partition: str
+    calibration_sample_count: int
+    profiled_batch_sizes: tuple[int, ...]
+    parity: RuntimeParityMetrics
+    max_normalized_drift_limit: float
+    accepted: bool
+    rejection_reasons: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable representation."""
+        return asdict(self)
+
+
+def assess_qualcomm_int8_candidate(
+    *,
+    source_model_sha256: str,
+    quantized_model_sha256: str,
+    calibration_partition: str,
+    calibration_sample_count: int,
+    profiles: tuple[QnnProfileSummary, ...],
+    parity: RuntimeParityMetrics,
+    required_batch_sizes: tuple[int, ...] = (1, 32, 256),
+    max_normalized_drift: float = 0.01,
+) -> QualcommInt8Acceptance:
+    """Accept an INT8 claim only when provenance, NPU profiles, and parity pass."""
+
+    reasons: list[str] = []
+    hexadecimal = set("0123456789abcdef")
+    hashes = (source_model_sha256.lower(), quantized_model_sha256.lower())
+    if any(len(value) != 64 or set(value) - hexadecimal for value in hashes):
+        reasons.append("model hashes must be lowercase-compatible SHA-256 values")
+    if hashes[0] == hashes[1]:
+        reasons.append("source and quantized model hashes must be distinct")
+    if calibration_partition.strip().lower() != "train":
+        reasons.append("quantization calibration must use the training partition only")
+    if calibration_sample_count <= 0:
+        reasons.append("calibration_sample_count must be positive")
+    if max_normalized_drift <= 0.0:
+        raise ValueError("max_normalized_drift must be positive.")
+
+    batches = tuple(sorted(profile.batch_size for profile in profiles))
+    if batches != tuple(sorted(required_batch_sizes)):
+        reasons.append("all required batch profiles must be present exactly once")
+    for profile in profiles:
+        if profile.estimated_inference_time_us is None:
+            reasons.append(f"batch {profile.batch_size} is missing measured latency")
+        if profile.estimated_inference_peak_memory_bytes is None:
+            reasons.append(f"batch {profile.batch_size} is missing measured peak memory")
+        non_npu = {
+            unit: count for unit, count in profile.compute_units.items() if unit != "NPU" and count
+        }
+        if profile.compute_units.get("NPU", 0) <= 0 or non_npu:
+            reasons.append(f"batch {profile.batch_size} does not show exclusive NPU placement")
+    if parity.max_normalized_drift > max_normalized_drift:
+        reasons.append("held-out normalized drift exceeds the preregistered limit")
+
+    return QualcommInt8Acceptance(
+        source_model_sha256=hashes[0],
+        quantized_model_sha256=hashes[1],
+        calibration_partition=calibration_partition.strip().lower(),
+        calibration_sample_count=calibration_sample_count,
+        profiled_batch_sizes=batches,
+        parity=parity,
+        max_normalized_drift_limit=max_normalized_drift,
+        accepted=not reasons,
+        rejection_reasons=tuple(reasons),
+    )
+
+
 def qnn_graph_option(graph_name: str) -> str:
     """Return the AI Hub option used to select one linked QNN graph."""
     normalized = graph_name.strip()
