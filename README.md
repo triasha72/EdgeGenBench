@@ -35,7 +35,7 @@ The project combines:
 EdgeGenBench uses synthetic or public information only. It does not contain
 proprietary aircraft-manufacturer data, software, or design information.
 
-## Current status
+## What was built and why
 
 ### Released: EdgeGenBench v0.2.0
 
@@ -43,10 +43,11 @@ Version 0.2.0 added the compact PyTorch multi-output surrogate while retaining
 the complete v0.1 scientific-ML, optimization, uncertainty, and classical ONNX
 workflow.
 
-### Validated main-branch deployment work
+### From model training to measured deployment
 
-The current main branch adds the following validated deployment capabilities
-beyond the v0.2.0 release:
+The compact neural surrogate was carried through export, precision conversion,
+runtime comparison, and hardware deployment so that accuracy, size, drift, and
+latency could be evaluated together:
 
 - checkpoint reconstruction from stored neural architecture metadata;
 - PyTorch-to-ONNX FP32 export;
@@ -79,9 +80,9 @@ beyond the v0.2.0 release:
 - public FP32, FP16, INT8, and deployment-selection CLI commands;
 - targeted static type checking for deployment modules.
 
-Qualcomm QNN integration and Snapdragon 8 Elite NPU deployment validation
-are now implemented. Qualcomm-native INT8 evaluation, broader Snapdragon
-hardware studies, and distribution-shift evaluation remain future work.
+The same evidence chain was extended through Qualcomm QNN to a Snapdragon 8
+Elite reference device, while keeping those device measurements separate from
+the Mac CPU and CoreML comparisons.
 
 ## Deployment-aware model selection
 
@@ -974,12 +975,5 @@ git diff --check
   is separate from the validated FP32-I/O, FP16-relaxed QNN deployment.
 - Snapdragon results are device-specific AI Hub profile measurements, not
   end-to-end Android application latency or a cross-hardware speed ranking.
-- Distribution-shift and extrapolation robustness remain future work.
-
-## Roadmap
-
-The next deployment study is Qualcomm-native INT8/QDQ, followed by broader
-hardware coverage and distribution-shift evaluation. The public package
-version remains 0.2.0 until a new release boundary is selected.
-
-See [`ROADMAP.md`](ROADMAP.md) for the detailed progression.
+- Distribution-shift and extrapolation robustness were not measured in the
+  reported experiments.
