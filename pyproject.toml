@@ -48,6 +48,9 @@ edge = [
 neural = [
   "torch>=2.4"
 ]
+coreml = [
+  "coremltools>=8,<10"
+]
 qualcomm = [
   "qai-hub>=0.54,<0.55"
 ]
