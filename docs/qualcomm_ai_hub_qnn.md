@@ -241,6 +241,12 @@ The project does not claim that:
 The next deployment study will evaluate Qualcomm-native INT8/QDQ
 post-training quantization using training-only calibration data.
 
+The repository now includes `assess_qualcomm_int8_candidate`, a fail-closed
+evidence gate for that study. It requires source and quantized artifact hashes,
+training-only calibration, measured batch-1/32/256 latency and memory, exclusive
+NPU placement, and held-out drift below a preregistered limit. The gate does not
+replace the AI Hub/device run and does not create an INT8 performance claim.
+
 That experiment will compare the INT8 candidate with the current
 FP32-I/O / HTP-FP16-relaxed baseline across:
 
