@@ -24,22 +24,25 @@ v0.1 Scientific-ML foundation                    COMPLETE
 v0.2 Compact PyTorch neural surrogate            COMPLETE
         |
         v
-FP32 neural ONNX deployment                      COMPLETE / UNRELEASED
+FP32 neural ONNX deployment                      COMPLETE ON MAIN
         |
         v
-FP16 deployment study                            COMPLETE / UNRELEASED
+FP16 deployment study                            COMPLETE ON MAIN
         |
         v
-Mixed INT8/FP32 quantization study               COMPLETE / UNRELEASED
+Mixed INT8/FP32 quantization study               COMPLETE ON MAIN
         |
         v
-Deployment-aware neural model selection         COMPLETE / UNRELEASED
+Deployment-aware neural model selection         COMPLETE ON MAIN
         |
         v
-Qualcomm AI Hub / QNN                            NEXT
+Qualcomm AI Hub / QNN                            COMPLETE ON MAIN
         |
         v
-Snapdragon NPU profiling                         PLANNED
+Snapdragon NPU profiling                         COMPLETE ON MAIN
+        |
+        v
+Qualcomm-native INT8/QDQ study                   NEXT
         |
         v
 Robustness / distribution-shift evaluation       PLANNED
@@ -604,13 +607,17 @@ Current progression:
   |
 0.2.0  compact PyTorch neural surrogate
   |
-  +-- FP32 neural ONNX deployment        complete / unreleased
+  +-- FP32 neural ONNX deployment        complete on main
   |
-  +-- FP16 deployment study              complete / unreleased
+  +-- FP16 deployment study              complete on main
   |
-  +-- mixed INT8/FP32 deployment         complete / unreleased
+  +-- mixed INT8/FP32 deployment         complete on main
   |
-  +-- unified deployment policy          next
+  +-- unified deployment policy          complete on main
+  |
+  +-- Qualcomm QNN / Snapdragon profile  complete on main
+  |
+  +-- Qualcomm-native INT8/QDQ            next
   |
   v
 future deployment-runtime release boundary

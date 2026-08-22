@@ -43,9 +43,10 @@ Version 0.2.0 added the compact PyTorch multi-output surrogate while retaining
 the complete v0.1 scientific-ML, optimization, uncertainty, and classical ONNX
 workflow.
 
-### Unreleased neural-deployment work
+### Validated main-branch deployment work
 
-The current development work adds:
+The current main branch adds the following validated deployment capabilities
+beyond the v0.2.0 release:
 
 - checkpoint reconstruction from stored neural architecture metadata;
 - PyTorch-to-ONNX FP32 export;
@@ -969,15 +970,16 @@ git diff --check
   improvement in the measured workload.
 - Mixed INT8/FP32 reduced serialized size and improved batch-256 CPU latency,
   but was slower at batch 1 and slightly slower at batch 32.
-- The INT8 benchmark validates ONNX Runtime CPU behavior only; it does not
-  establish Qualcomm QNN or NPU performance.
-- Qualcomm QNN and Snapdragon NPU execution have not yet been validated.
+- The mixed INT8/FP32 benchmark validates ONNX Runtime CPU behavior only; it
+  is separate from the validated FP32-I/O, FP16-relaxed QNN deployment.
+- Snapdragon results are device-specific AI Hub profile measurements, not
+  end-to-end Android application latency or a cross-hardware speed ranking.
 - Distribution-shift and extrapolation robustness remain future work.
 
 ## Roadmap
 
-The next deployment milestone is a unified precision/runtime decision layer,
-followed by Qualcomm AI Hub / QNN integration and supported-device Snapdragon
-NPU profiling.
+The next deployment study is Qualcomm-native INT8/QDQ, followed by broader
+hardware coverage and distribution-shift evaluation. The public package
+version remains 0.2.0 until a new release boundary is selected.
 
 See [`ROADMAP.md`](ROADMAP.md) for the detailed progression.
