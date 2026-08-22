@@ -236,28 +236,32 @@ The project does not claim that:
 - current results generalize to every Snapdragon SoC;
 - the current deployment is Qualcomm-native INT8.
 
-## Next Qualcomm milestone
+## Qualcomm-native INT8/QDQ follow-up
 
-The next deployment study will evaluate Qualcomm-native INT8/QDQ
-post-training quantization using training-only calibration data.
+The planned INT8 study was completed with 4,200 training-only calibration rows
+and the frozen 900-row test partition. The mixed INT8/FP32 ONNX artifact was
+33.56% smaller than its regenerated FP32 source and passed every local drift
+guard before submission.
 
-The repository now includes `assess_qualcomm_int8_candidate`, a fail-closed
-evidence gate for that study. It requires source and quantized artifact hashes,
-training-only calibration, measured batch-1/32/256 latency and memory, exclusive
-NPU placement, and held-out drift below a preregistered limit. The gate does not
-replace the AI Hub/device run and does not create an INT8 performance claim.
+Separate QNN Context Binaries were compiled and measured on the Snapdragon 8
+Elite QRD:
 
-That experiment will compare the INT8 candidate with the current
-FP32-I/O / HTP-FP16-relaxed baseline across:
+| Batch | Compile job | Profile job | Inference job | Latency | Peak memory | Placement |
+|---:|---|---|---|---:|---:|---|
+| 1 | `jp8x7v28g` | `jgk4ymvop` | `j5671l27p` | 43 us | 122,986,496 B | NPU: 9 |
+| 32 | `jgj7l4d8g` | `jp1j8x2lp` | `jgd3vlnlp` | 37 us | 123,002,880 B | NPU: 9 |
+| 256 | `j5w79nwjg` | `j574d30r5` | `jp41w0klp` | 42 us | 123,101,184 B | NPU: 9 |
 
-- batch 1;
-- batch 32;
-- batch 256;
-- held-out R2;
-- held-out NRMSE;
-- deployment drift;
-- QNN serialized size;
-- NPU placement;
-- AI Hub profile latency;
-- derived throughput;
-- runtime memory.
+Batch 1 evaluated all 900 held-out rows. Batches 32 and 256 evaluated the same
+first 256 held-out rows. Batch-1 remote quality was mean R² `0.996786` and mean
+NRMSE `0.052115`. Mean normalized deployment drift was `0.004516`, while the
+maximum was `0.036602`.
+
+The candidate therefore failed the preregistered maximum normalized drift
+limit of `0.01`. The `assess_qualcomm_int8_candidate` gate rejected it without
+changing the limit after observing results. The FP32-I/O / QNN HTP
+FP16-relaxed deployment remains selected.
+
+The complete machine-readable evidence, including source and quantized hashes,
+target model IDs, profiles, parity, predictive quality, and rejection reason,
+is stored in `reports/qualcomm_int8_qnn_v0_1.json`.

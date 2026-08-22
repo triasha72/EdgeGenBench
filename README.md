@@ -146,6 +146,20 @@ Complete provenance and linked-graph validation are stored in:
 
 `reports/qualcomm_qnn_v0_1.json`
 
+### Qualcomm-native INT8 decision
+
+The follow-up INT8/QDQ study was executed on the same Snapdragon 8 Elite
+target for batch sizes 1, 32, and 256. Every graph ran exclusively on nine NPU
+layers, with measured profile latency of 43, 37, and 42 microseconds.
+
+The candidate retained a batch-1 held-out mean R² of `0.996786`, but its
+maximum normalized deployment drift was `0.036602`. That exceeded the frozen
+`0.01` limit, so the fail-closed gate rejected the candidate and kept the
+FP32-I/O / QNN HTP FP16-relaxed model as the selected Qualcomm baseline.
+
+Job IDs, artifact hashes, profiles, held-out parity, and the rejection decision
+are stored in `reports/qualcomm_int8_qnn_v0_1.json`.
+
 ## Benchmark problem
 
 The benchmark represents an early regional-aircraft design study.
