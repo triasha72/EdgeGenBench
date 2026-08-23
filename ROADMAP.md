@@ -656,10 +656,12 @@ Current progression:
   |
   +-- Qualcomm QNN / Snapdragon profile  complete on main
   |
-  +-- Qualcomm-native INT8/QDQ            next
+  +-- Qualcomm-native INT8/QDQ            complete on main
+  |
+  +-- installable iPhone browser app      complete on main
   |
   v
-future deployment-runtime release boundary
+robustness / distribution-shift study     next
 ```
 
 Do not bump the public version until the intended release boundary is
