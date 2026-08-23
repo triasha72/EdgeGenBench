@@ -8,6 +8,10 @@ The project uses semantic versioning for public releases.
 
 ### Added
 
+- Installable mobile browser app for local ONNX inference on iPhone
+- GitHub Pages deployment workflow and offline application cache
+- Browser-to-ONNX preprocessing contract regression tests
+
 - Optional Qualcomm AI Hub Workbench dependency group
 - Qualcomm QNN deployment-result normalization helpers
 - Offline Qualcomm profile and numerical-parity tests
