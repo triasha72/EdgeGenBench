@@ -8,8 +8,8 @@ physical units. Inputs and predictions stay on the device.
 
 ## Publish
 
-The `Deploy browser demo` GitHub Actions workflow stages this directory with
-`artifacts/neural_onnx/neural_surrogate.onnx` and publishes it to GitHub Pages.
+The `Deploy browser demo` GitHub Actions workflow publishes this directory,
+including its versioned browser ONNX model, to GitHub Pages.
 In the repository's **Settings → Pages**, set **Source** to **GitHub Actions**,
 then run the workflow or push a change under `web/`.
 
@@ -36,7 +36,6 @@ Stage the same files used by the deployment workflow and serve them over HTTP:
 ```bash
 mkdir -p /tmp/edgegenbench-site/model
 cp -R web/. /tmp/edgegenbench-site/
-cp artifacts/neural_onnx/neural_surrogate.onnx /tmp/edgegenbench-site/model/
 python -m http.server 8000 --directory /tmp/edgegenbench-site
 ```
 

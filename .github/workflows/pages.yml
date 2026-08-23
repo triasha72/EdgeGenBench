@@ -3,7 +3,7 @@ name: Deploy browser demo
 on:
   push:
     branches: [main]
-    paths: ["web/**", "artifacts/neural_onnx/neural_surrogate.onnx", ".github/workflows/pages.yml"]
+    paths: ["web/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -23,11 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Stage static app and model
+      - name: Stage static app
         run: |
-          mkdir -p _site/model
+          mkdir -p _site
           cp -R web/. _site/
-          cp artifacts/neural_onnx/neural_surrogate.onnx _site/model/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
       - name: Deploy to GitHub Pages

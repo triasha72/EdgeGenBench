@@ -1,18 +1,22 @@
 import json
 from pathlib import Path
 
+import onnx
+
 ROOT = Path(__file__).parents[1]
 
 
 def test_web_contract_matches_deployed_onnx_metadata() -> None:
     contract = json.loads((ROOT / "web/model-contract.json").read_text())
-    metadata = json.loads((ROOT / "artifacts/neural_onnx/metadata.json").read_text())
-    assert contract["inputName"] == metadata["input_name"]
-    assert contract["outputName"] == metadata["output_name"]
-    assert contract["inputDimension"] == metadata["input_dim"]
-    assert contract["outputDimension"] == metadata["output_dim"]
-    assert contract["targets"] == metadata["targets"]
+    model = onnx.load(ROOT / "web/model/neural_surrogate.onnx")
+    model_input = model.graph.input[0]
+    model_output = model.graph.output[0]
+    assert contract["inputName"] == model_input.name
+    assert contract["outputName"] == model_output.name
+    assert contract["inputDimension"] == model_input.type.tensor_type.shape.dim[1].dim_value
+    assert contract["outputDimension"] == model_output.type.tensor_type.shape.dim[1].dim_value
     assert len(contract["featureMean"]) + len(contract["categories"]) == contract["inputDimension"]
+    assert len(contract["targets"]) == contract["outputDimension"]
 
 
 def test_web_app_references_installable_local_assets() -> None:
@@ -21,4 +25,4 @@ def test_web_app_references_installable_local_assets() -> None:
     assert 'rel="manifest"' in html
     assert "neural_surrogate.onnx" in worker
     assert (ROOT / "web/manifest.webmanifest").is_file()
-    assert (ROOT / "artifacts/neural_onnx/neural_surrogate.onnx").is_file()
+    assert (ROOT / "web/model/neural_surrogate.onnx").is_file()
