@@ -598,6 +598,27 @@ Candidate requirements include:
 
 ---
 
+## Milestone 11 — installable iPhone browser deployment
+
+**Status: COMPLETE ON MAIN**
+
+The FP32 ONNX surrogate is now packaged as a mobile-first progressive web app.
+It preserves the frozen feature and target scaling contract, runs inference in
+Safari with ONNX Runtime Web, caches the app and model, and deploys through
+GitHub Pages. This closes browser-based iPhone delivery without presenting it
+as a signed native build or as physical-device performance evidence.
+
+Completed evidence:
+
+- deployable static application and versioned ONNX model;
+- install manifest, standalone display mode, and service-worker cache;
+- local preprocessing and inverse target scaling;
+- contract tests against the ONNX deployment metadata;
+- GitHub Pages deployment workflow;
+- iPhone installation and evidence-boundary documentation.
+
+---
+
 ## Release strategy
 
 Current progression:

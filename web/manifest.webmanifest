@@ -1,0 +1,11 @@
+{
+  "name": "EdgeGenBench On-device Demo",
+  "short_name": "EdgeGenBench",
+  "description": "Run the EdgeGenBench aircraft surrogate locally on a phone or desktop browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f7f8",
+  "theme_color": "#071b2b",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

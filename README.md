@@ -30,16 +30,18 @@ The project combines:
 - quantization calibration and drift analysis;
 - CPU and CoreML execution-provider benchmarking;
 - native iOS 17 SwiftUI inference with an exported Core ML model contract;
+- installable iPhone browser inference with ONNX Runtime Web;
 - repeated latency benchmarking;
 - reproducible testing, type checking, and continuous integration.
 
 EdgeGenBench uses synthetic or public information only. It does not contain
 proprietary aircraft-manufacturer data, software, or design information.
 
-The native app and the model-export steps are documented in
-[`ios/README.md`](ios/README.md). Physical-device latency and energy remain
-measured evidence: the repository does not substitute simulator results for an
-iPhone run.
+The [browser demo](web/README.md) provides the usable iPhone path without
+Xcode: GitHub Pages serves an installable web app and inference runs locally in
+Safari. The separate [native app](ios/README.md) preserves the Core ML route,
+but physical-device latency and energy remain unclaimed until a signed build is
+measured on an iPhone.
 
 ## What was built and why
 

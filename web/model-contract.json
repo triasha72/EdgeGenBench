@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "inputName": "features",
+  "outputName": "predictions",
+  "numericFeatures": ["passenger_capacity", "design_range_km", "cruise_speed_kmh", "battery_specific_energy_wh_per_kg", "hydrogen_storage_efficiency", "hybridization_ratio"],
+  "categoricalFeature": "propulsion_architecture",
+  "categories": ["conventional_turboprop", "fuel_cell_electric", "parallel_hybrid", "series_hybrid"],
+  "featureMean": [64.93524169921875, 950.4022827148438, 534.7645874023438, 526.701416015625, 0.5741775631904602, 0.2430095076560974],
+  "featureScale": [14.406549453735352, 318.0289306640625, 66.45372772216797, 130.14117431640625, 0.072084940969944, 0.2152828574180603],
+  "targets": ["estimated_takeoff_mass_kg", "mission_energy_kwh", "energy_per_passenger_km_kwh", "lifecycle_emissions_proxy_kgco2e", "operating_cost_proxy_usd", "noise_proxy_db"],
+  "targetMean": [29978.150390625, 13540.7587890625, 0.2250383198261261, 2065.57275390625, 2130.657958984375, 85.24334716796875],
+  "targetScale": [7466.43115234375, 5245.73193359375, 0.04038233309984207, 1457.17333984375, 697.0398559570312, 3.209773063659668],
+  "inputDimension": 10,
+  "outputDimension": 6
+}
