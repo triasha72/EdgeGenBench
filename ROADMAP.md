@@ -42,10 +42,19 @@ Qualcomm AI Hub / QNN                            COMPLETE ON MAIN
 Snapdragon NPU profiling                         COMPLETE ON MAIN
         |
         v
-Qualcomm-native INT8/QDQ study                   NEXT
+Qualcomm-native INT8/QDQ study                   COMPLETE ON MAIN
         |
         v
-Robustness / distribution-shift evaluation       PLANNED
+Deployment policy layer                          COMPLETE ON MAIN
+        |
+        v
+Native iOS inference path                        COMPLETE ON MAIN
+        |
+        v
+Installable iPhone browser deployment            COMPLETE ON MAIN
+        |
+        v
+Robustness / distribution-shift evaluation       NEXT
 ```
 
 ---
@@ -517,7 +526,7 @@ measurements.
 
 ## Milestone 8 — Snapdragon NPU optimization
 
-**Status: NEXT**
+**Status: COMPLETE ON MAIN**
 
 ### Goal
 
@@ -525,7 +534,7 @@ Evaluate whether Qualcomm-native reduced-precision deployment improves the
 Snapdragon NPU accuracy-size-latency tradeoff relative to the validated
 FP32-I/O / HTP-FP16-relaxed baseline.
 
-### Planned
+### Completed
 
 - Qualcomm-native INT8/QDQ post-training quantization;
 - training-only calibration;
@@ -540,14 +549,18 @@ FP32-I/O / HTP-FP16-relaxed baseline.
 - derived model-throughput comparison;
 - repeated-profile variability study where practical.
 
-No INT8 Snapdragon performance claim will be made until measured device
-evidence exists.
+The measured INT8/QDQ candidate ran on the Snapdragon 8 Elite NPU for batch
+sizes 1, 32, and 256. Its maximum normalized deployment drift (`0.036602`)
+exceeded the frozen `0.01` acceptance limit, so the fail-closed decision kept
+the FP32-I/O / HTP-FP16-relaxed baseline. The rejected candidate, device
+profiles, hashes, and decision provenance are recorded in
+`reports/qualcomm_int8_qnn_v0_1.json`.
 
 ---
 
 ## Milestone 9 — robustness and extrapolation
 
-**Status: PLANNED**
+**Status: NEXT**
 
 Candidate studies:
 
@@ -567,9 +580,9 @@ target-level metrics, calibration results, and documented failure modes.
 
 ## Milestone 10 — deployment policy layer
 
-**Status: PLANNED**
+**Status: COMPLETE ON MAIN**
 
-Longer-term objective:
+Implemented flow:
 
 ```text
 deployment requirements
@@ -587,7 +600,7 @@ hardware-aware selection policy
 deployment decision + provenance
 ```
 
-Candidate requirements include:
+Supported requirements include:
 
 - maximum allowable accuracy drift;
 - batch size;
@@ -595,6 +608,11 @@ Candidate requirements include:
 - latency target;
 - hardware availability;
 - feasibility constraints.
+
+The selector evaluates only measured provider-specific candidates, rejects
+infeasible choices with explicit reasons, and writes JSON and Markdown
+decision records. The CLI and validation examples are documented in
+`docs/deployment_model_selection.md`.
 
 ---
 
