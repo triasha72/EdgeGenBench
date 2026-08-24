@@ -59,6 +59,12 @@ jobs:
         working-directory: android
         run: ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace
 
+      - name: Verify Android 16 KiB page compatibility
+        run: |
+          scripts/verify_android_16kb_alignment.sh \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            "$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
