@@ -1,0 +1,13 @@
+{
+  "source_model": "../artifacts/neural_onnx/neural_surrogate.onnx",
+  "quantized_model": "../artifacts/qualcomm_int8/neural_surrogate_qdq.onnx",
+  "qnn_context_binary": "../artifacts/qualcomm_int8/neural_surrogate_qnn.bin",
+  "reference_predictions": "../artifacts/qualcomm_int8/reference_predictions.npy",
+  "candidate_predictions": "../artifacts/qualcomm_int8/qnn_predictions.npy",
+  "calibration": {"partition": "train", "sample_count": 4200},
+  "profiles": [
+    {"batch_size": 1, "payload": {"execution_summary": {"estimated_inference_time": null, "estimated_inference_peak_memory": null}}},
+    {"batch_size": 32, "payload": {"execution_summary": {"estimated_inference_time": null, "estimated_inference_peak_memory": null}}},
+    {"batch_size": 256, "payload": {"execution_summary": {"estimated_inference_time": null, "estimated_inference_peak_memory": null}}}
+  ]
+}

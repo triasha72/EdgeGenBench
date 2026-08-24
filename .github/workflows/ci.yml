@@ -12,6 +12,26 @@ permissions:
   contents: read
 
 jobs:
+  native:
+    name: C++17 native runtime
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/native --parallel
+
+      - name: Test
+        run: ctest --test-dir build/native --output-on-failure
+
+      - name: Smoke benchmark
+        run: ./build/native/edgegenbench_benchmark --runs 100
+
   test:
     name: Python 3.12 checks
     runs-on: ubuntu-latest

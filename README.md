@@ -43,6 +43,30 @@ Safari. The separate [native app](ios/README.md) preserves the Core ML route,
 but physical-device latency and energy remain unclaimed until a signed build is
 measured on an iPhone.
 
+## Native C++ and Android runtime
+
+The repository now includes a C++17 inference boundary in [`native/`](native/)
+and a thin Kotlin/JNI Android harness in [`android/`](android/). The native
+target provides CMake/CTest coverage, tensor validation, explicit failures,
+JSON latency output, and equivalent baseline/fused FP32 preprocessing paths.
+The checked-in Android configuration uses the deterministic reference backend;
+it never presents those timings as QNN or NPU measurements.
+
+```bash
+cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --parallel
+ctest --test-dir build/native --output-on-failure
+./build/native/edgegenbench_benchmark --runs 1000
+./build/native/edgegenbench_benchmark --baseline-preprocess --runs 1000
+```
+
+An optional ONNX Runtime QNN implementation registers
+`QNNExecutionProvider`, disables CPU fallback by default, supports QNN context
+caching and profiling, and fails session creation when the graph cannot be
+fully assigned. See [`native/README.md`](native/README.md) and the
+[`QNN device runbook`](docs/qnn_device_runbook.md). No power claim is made
+without a named measurement tool.
+
 ## What was built and why
 
 ### Released: EdgeGenBench v0.2.0
