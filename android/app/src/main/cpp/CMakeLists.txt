@@ -8,3 +8,6 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../../../../native
 add_library(edgegenbench_jni SHARED jni_bridge.cpp)
 target_link_libraries(edgegenbench_jni PRIVATE edgegenbench_runtime log)
 target_compile_features(edgegenbench_jni PRIVATE cxx_std_17)
+# Android 15 devices may use 16 KiB pages. Keep the explicit linker guard even
+# with NDK r27 flexible-page support so CI can verify every PT_LOAD segment.
+target_link_options(edgegenbench_jni PRIVATE "-Wl,-z,max-page-size=16384")

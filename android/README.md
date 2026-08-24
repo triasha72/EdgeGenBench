@@ -2,6 +2,8 @@
 
 This is a thin UI/JNI shell around `native/`; it is not a separate product.
 The build pins Gradle 8.9, Android API 35, NDK 27.0.12077973, and CMake 3.22.1.
+Native libraries are linked and packaged for Android's 16 KiB page-size
+requirement, and CI rejects APKs that fail ZIP or ELF alignment checks.
 Open `android/` in Android Studio or use the pinned, checksum-verified Gradle wrapper:
 
 ```bash
