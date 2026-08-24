@@ -1,0 +1,172 @@
+{
+  "cases": [
+    {
+      "encoded": [
+        -1.730826735496521,
+        -1.573448896408081,
+        -1.8774656057357788,
+        -1.7419652938842773,
+        -1.72265625,
+        -1.1287916898727417,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normalized_prediction": [
+        -1.6939667463302612,
+        -1.6471834182739258,
+        1.6221253871917725,
+        -0.5675589442253113,
+        -1.9509999752044678,
+        0.2497880905866623
+      ],
+      "physical_prediction": [
+        17330.265625,
+        4900.076171875,
+        0.2905435264110565,
+        1238.541015625,
+        770.7332763671875,
+        86.04511260986328
+      ],
+      "raw": {
+        "battery_specific_energy_wh_per_kg": 300.0,
+        "cruise_speed_kmh": 410.0,
+        "design_range_km": 450.0,
+        "hybridization_ratio": 0.0,
+        "hydrogen_storage_efficiency": 0.45,
+        "passenger_capacity": 40.0,
+        "propulsion_architecture": "conventional_turboprop"
+      }
+    },
+    {
+      "encoded": [
+        0.004495059605687857,
+        -0.0012649248819798231,
+        0.0035425040405243635,
+        -0.013073618523776531,
+        0.011409108527004719,
+        0.032471198588609695,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "normalized_prediction": [
+        0.1938205063343048,
+        -0.07157272100448608,
+        -0.296128511428833,
+        0.21460846066474915,
+        -0.17134925723075867,
+        0.33233314752578735
+      ],
+      "physical_prediction": [
+        31425.296875,
+        13165.3076171875,
+        0.21307995915412903,
+        2378.29443359375,
+        2011.220703125,
+        86.31005859375
+      ],
+      "raw": {
+        "battery_specific_energy_wh_per_kg": 525.0,
+        "cruise_speed_kmh": 535.0,
+        "design_range_km": 950.0,
+        "hybridization_ratio": 0.25,
+        "hydrogen_storage_efficiency": 0.575,
+        "passenger_capacity": 65.0,
+        "propulsion_architecture": "parallel_hybrid"
+      }
+    },
+    {
+      "encoded": [
+        1.1845139265060425,
+        1.4137006998062134,
+        0.5302248001098633,
+        0.9474217891693115,
+        1.4680242538452148,
+        2.12274432182312,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "normalized_prediction": [
+        2.5834343433380127,
+        1.6816364526748657,
+        -0.7772464752197266,
+        0.44390544295310974,
+        2.2042102813720703,
+        0.09569714963436127
+      ],
+      "physical_prediction": [
+        49267.1875,
+        22362.171875,
+        0.19365128874778748,
+        2712.419921875,
+        3667.080322265625,
+        85.5505142211914
+      ],
+      "raw": {
+        "battery_specific_energy_wh_per_kg": 650.0,
+        "cruise_speed_kmh": 570.0,
+        "design_range_km": 1400.0,
+        "hybridization_ratio": 0.7,
+        "hydrogen_storage_efficiency": 0.68,
+        "passenger_capacity": 82.0,
+        "propulsion_architecture": "series_hybrid"
+      }
+    },
+    {
+      "encoded": [
+        2.433945655822754,
+        3.300321340560913,
+        1.282628059387207,
+        1.715818166732788,
+        2.855276107788086,
+        3.5162599086761475,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "normalized_prediction": [
+        3.1657423973083496,
+        4.642092227935791,
+        -0.24436263740062714,
+        0.9913133382797241,
+        5.421738147735596,
+        -0.26525044441223145
+      ],
+      "physical_prediction": [
+        53614.9453125,
+        37891.9296875,
+        0.21517038345336914,
+        3510.088134765625,
+        5909.8251953125,
+        84.39195251464844
+      ],
+      "raw": {
+        "battery_specific_energy_wh_per_kg": 750.0,
+        "cruise_speed_kmh": 620.0,
+        "design_range_km": 2000.0,
+        "hybridization_ratio": 1.0,
+        "hydrogen_storage_efficiency": 0.78,
+        "passenger_capacity": 100.0,
+        "propulsion_architecture": "fuel_cell_electric"
+      }
+    }
+  ],
+  "input_name": "features",
+  "input_width": 10,
+  "model_sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
+  "output_name": "predictions",
+  "output_width": 6,
+  "preprocessing_sha256": "c53831dd106a26b668d586b4eb83f73a1e43483c52ec8ee36c7ba35c95cdb08e",
+  "schema_version": "1.0",
+  "tolerances": {
+    "encoded_atol": 1e-06,
+    "normalized_atol": 1e-05,
+    "physical_atol": 0.001
+  }
+}
