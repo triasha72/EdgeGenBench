@@ -28,6 +28,13 @@ reports/*
 *.pt
 *.pth
 
+# Native and Android build outputs
+build/
+android/.gradle/
+android/local.properties
+android/**/build/
+.idea/
+
 # Local backup files
 backups/
 *.bak
