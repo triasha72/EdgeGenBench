@@ -26,6 +26,52 @@ class QualcommInt8ReportArtifacts:
     rejection_reasons: tuple[str, ...]
 
 
+def validate_tracked_qualcomm_int8_report(report_path: Path) -> tuple[bool, tuple[str, ...]]:
+    """Re-run the frozen acceptance gate over the tracked measured report."""
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    acceptance_payload = payload["acceptance"]
+    parity_payload = acceptance_payload["parity"]
+    from edgegenbench.deployment.qualcomm_ai_hub import RuntimeParityMetrics
+
+    parity = RuntimeParityMetrics(**parity_payload)
+    profiles = tuple(
+        summarize_profile(
+            {
+                "execution_summary": {
+                    "estimated_inference_time": item["profile"]["estimated_inference_time_us"],
+                    "estimated_inference_peak_memory": item["profile"][
+                        "estimated_inference_peak_memory_bytes"
+                    ],
+                },
+                "nodes": [
+                    {"compute_unit": unit}
+                    for unit, count in item["profile"]["compute_units"].items()
+                    for _ in range(count)
+                ],
+            },
+            int(batch),
+        )
+        for batch, item in sorted(payload["batches"].items(), key=lambda pair: int(pair[0]))
+    )
+    result = assess_qualcomm_int8_candidate(
+        source_model_sha256=acceptance_payload["source_model_sha256"],
+        quantized_model_sha256=acceptance_payload["quantized_model_sha256"],
+        calibration_partition=acceptance_payload["calibration_partition"],
+        calibration_sample_count=int(acceptance_payload["calibration_sample_count"]),
+        profiles=profiles,
+        parity=parity,
+        max_normalized_drift=float(acceptance_payload["max_normalized_drift_limit"]),
+    )
+    if result.accepted != bool(acceptance_payload["accepted"]):
+        raise ValueError("tracked acceptance decision does not match the frozen evidence gate")
+    if result.rejection_reasons != tuple(acceptance_payload["rejection_reasons"]):
+        raise ValueError("tracked rejection reasons do not match the frozen evidence gate")
+    expected_decision = "accepted" if result.accepted else "rejected"
+    if payload.get("decision") != expected_decision:
+        raise ValueError("top-level tracked decision contradicts the acceptance gate")
+    return result.accepted, result.rejection_reasons
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:

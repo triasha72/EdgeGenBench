@@ -8,12 +8,21 @@ class ReferenceSession final : public Session {
  public:
   Tensor run(const Tensor& input) override {
     input.validate();
-    if (input.shape.size() != 2 || input.shape.front() != 1)
-      throw RuntimeError("reference backend expects a [1,N] tensor");
-    float score = 0.125F;
-    for (std::size_t i = 0; i < input.data.size(); ++i)
-      score += input.data[i] * (0.01F * static_cast<float>(i + 1));
-    return {{1, 1}, {score}};
+    if (input.shape.size() != 2)
+      throw RuntimeError("reference backend expects a [batch,N] tensor");
+    const auto batch = static_cast<std::size_t>(input.shape[0]);
+    const auto width = static_cast<std::size_t>(input.shape[1]);
+    Tensor output{{input.shape[0], 6}, std::vector<float>(batch * 6)};
+    for (std::size_t row = 0; row < batch; ++row) {
+      for (std::size_t target = 0; target < 6; ++target) {
+        float score = 0.125F * static_cast<float>(target + 1);
+        for (std::size_t column = 0; column < width; ++column)
+          score += input.data[row * width + column] *
+                   (0.001F * static_cast<float>((target + 1) * (column + 1)));
+        output.data[row * 6 + target] = score;
+      }
+    }
+    return output;
   }
   std::string placement_report() const override {
     return R"({"backend":"reference","operators":{"ReferenceLinear":1},"cpu_fallback":false,"hardware_measurement":false})";

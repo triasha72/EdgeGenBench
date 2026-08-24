@@ -9,7 +9,7 @@ cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
 cmake --build build/native -j
 ctest --test-dir build/native --output-on-failure
 ./build/native/edgegenbench_benchmark --runs 100
-./build/native/edgegenbench_benchmark --baseline-preprocess --runs 100
+./build/native/edgegenbench_benchmark --baseline-preprocess --batch 256 --runs 100
 ```
 
 The fused path performs normalization in one pass and one allocation; the

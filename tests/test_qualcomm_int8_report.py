@@ -5,7 +5,10 @@ from pathlib import Path
 
 import numpy as np
 
-from edgegenbench.deployment.qualcomm_int8_report import build_qualcomm_int8_report
+from edgegenbench.deployment.qualcomm_int8_report import (
+    build_qualcomm_int8_report,
+    validate_tracked_qualcomm_int8_report,
+)
 
 
 def _manifest(tmp_path: Path, *, cpu_node: bool = False) -> Path:
@@ -59,3 +62,11 @@ def test_rejects_any_cpu_placement(tmp_path: Path) -> None:
     )
     assert not artifacts.accepted
     assert any("exclusive NPU" in reason for reason in artifacts.rejection_reasons)
+
+
+def test_tracked_device_rejection_matches_frozen_gate() -> None:
+    accepted, reasons = validate_tracked_qualcomm_int8_report(
+        Path("reports/qualcomm_int8_qnn_v0_1.json")
+    )
+    assert not accepted
+    assert reasons == ("held-out normalized drift exceeds the preregistered limit",)

@@ -7,6 +7,7 @@ option(EDGEBENCH_ENABLE_ORT "Enable ONNX Runtime backend" OFF)
 
 add_library(edgegenbench_runtime
   src/config.cpp
+  src/model_contract.cpp
   src/preprocess.cpp
   src/session.cpp)
 target_include_directories(edgegenbench_runtime PUBLIC include)

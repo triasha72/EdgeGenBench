@@ -1,11 +1,12 @@
 # EdgeGenBench Android harness
 
 This is a thin UI/JNI shell around `native/`; it is not a separate product.
-Open `android/` in Android Studio or use a local Gradle installation:
+The build pins Gradle 8.9, Android API 35, NDK 27.0.12077973, and CMake 3.22.1.
+Open `android/` in Android Studio or use the pinned, checksum-verified Gradle wrapper:
 
 ```bash
 cd android
-gradle :app:assembleDebug
+./gradlew lintDebug testDebugUnitTest assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb logcat -s EdgeGenBench
 ```

@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "dev.edgegenbench"
     compileSdk = 35
+    ndkVersion = "27.0.12077973"
     defaultConfig {
         applicationId = "dev.edgegenbench"
         minSdk = 28

@@ -1,20 +1,28 @@
 #include "edgegenbench/runtime.hpp"
 
+#include <cmath>
+#include <limits>
 #include <numeric>
 
 namespace edgegenbench {
 
 std::size_t Tensor::element_count() const {
   if (shape.empty()) return 0;
-  return std::accumulate(shape.begin(), shape.end(), std::size_t{1},
-                         [](std::size_t a, std::int64_t b) {
-                           if (b <= 0) throw RuntimeError("tensor dimensions must be positive");
-                           return a * static_cast<std::size_t>(b);
-                         });
+  std::size_t count = 1;
+  for (std::int64_t dimension : shape) {
+    if (dimension <= 0) throw RuntimeError("tensor dimensions must be positive");
+    const auto size = static_cast<std::size_t>(dimension);
+    if (count > std::numeric_limits<std::size_t>::max() / size)
+      throw RuntimeError("tensor element count overflows size_t");
+    count *= size;
+  }
+  return count;
 }
 
 void Tensor::validate() const {
   if (element_count() != data.size()) throw RuntimeError("tensor shape/data size mismatch");
+  for (float value : data)
+    if (!std::isfinite(value)) throw RuntimeError("tensor contains non-finite data");
 }
 
 static void validate_params(const std::vector<float>& input,

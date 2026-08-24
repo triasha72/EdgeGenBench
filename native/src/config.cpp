@@ -31,9 +31,10 @@ Config parse_args(int argc, char** argv) {
     else if (arg == "--qnn-profile") config.qnn_profiling_path = value("--qnn-profile");
     else if (arg == "--warmup") config.warmup_runs = positive_size(value("--warmup"), "--warmup");
     else if (arg == "--runs") config.measured_runs = positive_size(value("--runs"), "--runs");
+    else if (arg == "--batch") config.batch_size = positive_size(value("--batch"), "--batch");
     else if (arg == "--allow-cpu-fallback") config.disable_cpu_fallback = false;
     else if (arg == "--baseline-preprocess") config.fused_preprocess = false;
-    else if (arg == "--help") throw RuntimeError("usage: edgegenbench_benchmark [--model FILE] [--backend reference|qnn] [--qnn-backend-path FILE] [--qnn-context FILE] [--qnn-profile FILE] [--warmup N] [--runs N] [--allow-cpu-fallback] [--baseline-preprocess]");
+    else if (arg == "--help") throw RuntimeError("usage: edgegenbench_benchmark [--model FILE] [--backend reference|qnn] [--batch N] [--qnn-backend-path FILE] [--qnn-context FILE] [--qnn-profile FILE] [--warmup N] [--runs N] [--allow-cpu-fallback] [--baseline-preprocess]");
     else throw RuntimeError("unknown argument: " + arg);
   }
   if (config.backend != "reference" && config.model_path.empty())
