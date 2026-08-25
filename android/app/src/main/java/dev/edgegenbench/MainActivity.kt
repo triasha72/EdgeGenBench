@@ -32,8 +32,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(32, 40, 32, 32)
         }
         val run = Button(this).apply {
-            text = "Run cold + warm benchmark"
-            contentDescription = "Run cold and warm benchmark"
+            text = "Run benchmark + compare preprocessing"
+            contentDescription = "Run benchmark and compare baseline versus fused preprocessing"
             setTextColor(Color.WHITE)
             backgroundTintList = ColorStateList.valueOf(Color.rgb(9, 105, 218))
         }

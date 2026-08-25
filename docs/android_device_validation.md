@@ -1,7 +1,7 @@
 # Android device validation
 
 1. Open the successful GitHub Actions run and download the versioned Android
-   artifact (currently `EdgeGenBench-0.1.4-repeated-profile-apk`).
+   artifact (currently `EdgeGenBench-0.1.5-baseline-fused-apk`).
 2. Unzip it to obtain the correspondingly versioned debug APK.
 3. Enable Android developer options and USB debugging, connect exactly one device,
    and confirm that `adb devices` reports it as `device`.

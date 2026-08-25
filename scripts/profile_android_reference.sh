@@ -24,7 +24,7 @@ grep -q 'versionName=' <<< "$package_dump" || {
 }
 
 mkdir -p "$output_dir/runs"
-printf 'run,cold_ms,warm_mean_ms,warm_p95_ms,launch_total_ms,total_pss_kib,total_rss_kib\n' \
+printf 'run,cold_ms,warm_mean_ms,warm_p95_ms,baseline_preprocess_mean_ms,fused_preprocess_mean_ms,preprocess_speedup_x,preprocess_max_abs_drift,output_max_abs_drift,launch_total_ms,total_pss_kib,total_rss_kib\n' \
   > "$output_dir/latency-memory.csv"
 
 {
@@ -64,14 +64,24 @@ for ((run = 1; run <= repeats; run++)); do
 
   grep -q 'backend=reference (NOT QNN)' "$run_dir/logcat.txt"
   grep -q 'power=not measured' "$run_dir/logcat.txt"
+  grep -q 'baseline_preprocess_mean_ms=' "$run_dir/logcat.txt"
+  grep -q 'fused_preprocess_mean_ms=' "$run_dir/logcat.txt"
   cold_ms="$(awk -F'cold_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
   warm_mean_ms="$(awk -F'warm_mean_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
   warm_p95_ms="$(awk -F'warm_p95_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  baseline_preprocess_mean_ms="$(awk -F'baseline_preprocess_mean_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  fused_preprocess_mean_ms="$(awk -F'fused_preprocess_mean_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  preprocess_speedup_x="$(awk -F'preprocess_speedup_x=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  preprocess_max_abs_drift="$(awk -F'preprocess_max_abs_drift=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  output_max_abs_drift="$(awk -F'output_max_abs_drift=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
   launch_total_ms="$(sed -n 's/^TotalTime: //p' "$run_dir/activity-start.txt" | tr -d '\r')"
   total_pss_kib="$(awk '/TOTAL PSS:/ {print $3; exit}' "$run_dir/meminfo.txt")"
   total_rss_kib="$(awk '/TOTAL RSS:/ {print $6; exit}' "$run_dir/meminfo.txt")"
-  printf '%s,%s,%s,%s,%s,%s,%s\n' "$run" "$cold_ms" "$warm_mean_ms" \
-    "$warm_p95_ms" "$launch_total_ms" "$total_pss_kib" "$total_rss_kib" \
+  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    "$run" "$cold_ms" "$warm_mean_ms" "$warm_p95_ms" \
+    "$baseline_preprocess_mean_ms" "$fused_preprocess_mean_ms" \
+    "$preprocess_speedup_x" "$preprocess_max_abs_drift" "$output_max_abs_drift" \
+    "$launch_total_ms" "$total_pss_kib" "$total_rss_kib" \
     >> "$output_dir/latency-memory.csv"
 done
 

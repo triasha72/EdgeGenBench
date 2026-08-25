@@ -29,8 +29,18 @@ jobs:
       - name: Test
         run: ctest --test-dir build/native --output-on-failure
 
-      - name: Smoke benchmark
-        run: ./build/native/edgegenbench_benchmark --runs 100
+      - name: Run native end-to-end acceptance benchmarks
+        run: |
+          mkdir -p build/evidence/native
+          ./build/native/edgegenbench_benchmark --runs 100 --baseline-preprocess > build/evidence/native/baseline.json
+          ./build/native/edgegenbench_benchmark --runs 100 > build/evidence/native/fused.json
+
+      - name: Upload native runtime evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-runtime-evidence
+          path: build/evidence/native
+          if-no-files-found: error
 
   android:
     name: Android debug APK
@@ -61,20 +71,29 @@ jobs:
 
       - name: Verify Android 16 KiB page compatibility
         run: |
+          mkdir -p build/evidence/android
           scripts/verify_android_16kb_alignment.sh \
             android/app/build/outputs/apk/debug/app-debug.apk \
-            "$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+            "$ANDROID_SDK_ROOT/ndk/27.0.12077973" \
+            | tee build/evidence/android/16kb-alignment.txt
 
       - name: Name verified 16 KiB-compatible APK
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk \
-            android/app/build/outputs/apk/debug/EdgeGenBench-0.1.4-repeated-profile-debug.apk
+            android/app/build/outputs/apk/debug/EdgeGenBench-0.1.5-baseline-fused-debug.apk
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: EdgeGenBench-0.1.4-repeated-profile-apk
-          path: android/app/build/outputs/apk/debug/EdgeGenBench-0.1.4-repeated-profile-debug.apk
+          name: EdgeGenBench-0.1.5-baseline-fused-apk
+          path: android/app/build/outputs/apk/debug/EdgeGenBench-0.1.5-baseline-fused-debug.apk
+          if-no-files-found: error
+
+      - name: Upload Android verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-verification-evidence
+          path: build/evidence/android
           if-no-files-found: error
 
   test:
@@ -121,3 +140,48 @@ jobs:
       - name: Revalidate tracked Qualcomm INT8 decision
         run: |
           python scripts/validate_tracked_qualcomm_int8.py
+
+  release-acceptance:
+    name: End-to-end release acceptance
+    runs-on: ubuntu-latest
+    needs: [native, android, test]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download native evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: native-runtime-evidence
+          path: build/input/native
+
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: EdgeGenBench-0.1.5-baseline-fused-apk
+          path: build/input/android
+
+      - name: Download Android verification evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: android-verification-evidence
+          path: build/input/android
+
+      - name: Validate and assemble release evidence
+        run: |
+          python scripts/build_release_evidence.py \
+            --baseline build/input/native/baseline.json \
+            --fused build/input/native/fused.json \
+            --apk build/input/android/EdgeGenBench-0.1.5-baseline-fused-debug.apk \
+            --alignment-report build/input/android/16kb-alignment.txt \
+            --output-dir build/release-evidence \
+            --git-revision "$GITHUB_SHA" \
+            --version 0.1.5
+
+      - name: Upload complete release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: EdgeGenBench-0.1.5-release-evidence
+          path: build/release-evidence
+          if-no-files-found: error

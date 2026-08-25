@@ -20,6 +20,13 @@ int main() {
   const auto fused = edgegenbench::preprocess_fused(input, mean, scale);
   check(baseline.shape == fused.shape, "equivalent shapes");
   check(baseline.data == fused.data, "fused equals baseline");
+  std::vector<float> large_input(262144), large_mean(262144, 0.5F),
+      large_scale(262144, 0.25F);
+  for (std::size_t i = 0; i < large_input.size(); ++i)
+    large_input[i] = static_cast<float>(i % 251) / 250.0F;
+  check(edgegenbench::preprocess_baseline(large_input, large_mean, large_scale).data ==
+            edgegenbench::preprocess_fused(large_input, large_mean, large_scale).data,
+        "large fused buffer equals baseline");
   throws([&] { edgegenbench::preprocess_fused({}, {}, {}); }, "empty input rejected");
   throws([&] { edgegenbench::preprocess_fused(input, mean, {1}); }, "bad scale rejected");
   edgegenbench::Config config;
