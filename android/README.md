@@ -14,8 +14,8 @@ adb logcat -s EdgeGenBench
 ```
 
 GitHub Actions publishes the verified build as
-`EdgeGenBench-0.1.1-16kb-compatible-apk.zip`. Extract it and install
-`EdgeGenBench-0.1.1-16kb-compatible-debug.apk`; do not reuse an older
+`EdgeGenBench-0.1.2-16kb-visible-ui-apk.zip`. Extract it and install
+`EdgeGenBench-0.1.2-16kb-visible-ui-debug.apk`; do not reuse an older
 `app-debug.apk` from Downloads. CI checks both APK ZIP alignment and every
 packaged native library's ELF load-segment alignment before publishing it.
 

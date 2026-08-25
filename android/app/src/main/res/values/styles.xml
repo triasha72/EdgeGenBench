@@ -1,6 +1,10 @@
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#58A6FF</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:statusBarColor">#0969DA</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>
