@@ -1,0 +1,19 @@
+--------- beginning of main
+08-25 12:48:50.467 28490 28490 I EdgeGenBench: MainActivity.onCreate: rendering high-contrast benchmark UI
+08-25 12:48:50.551 28490 28490 I EdgeGenBench: MainActivity.onCreate: content view attached
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: backend=reference (NOT QNN)
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: CPU fallback=false (reference backend)
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: cold_ms=0.013923
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: warm_mean_ms=0.003465
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: warm_p95_ms=0.003654
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: runs=100
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: output=0.156160
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: power=not measured
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: backend=reference (NOT QNN)
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: CPU fallback=false (reference backend)
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: cold_ms=0.013923
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: warm_mean_ms=0.003465
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: warm_p95_ms=0.003654
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: runs=100
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: output=0.156160
+08-25 12:48:56.511 28490 29450 I EdgeGenBench: power=not measured
