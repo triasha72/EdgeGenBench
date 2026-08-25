@@ -41,3 +41,19 @@ sha256sum models/model.onnx reports/device/qnn_context.bin > reports/device/chec
 Power savings must remain `not measured` unless a Monsoon, Otii, Trepn-supported
 rail, or another named calibrated measurement path is used. Battery percentage
 is not a power measurement.
+
+## Evidence manifest contract
+
+After collecting the files, create `reports/device/qnn-evidence.json` using the
+schema exercised by `tests/test_release_evidence.py`. Paths are relative to the
+JSON file. Then validate before publishing:
+
+```bash
+python scripts/validate_qnn_evidence.py reports/device/qnn-evidence.json \
+  --output reports/device/qnn-summary.json
+```
+
+Validation is intentionally fail-closed: all four retained artifacts must
+match their SHA-256 digests, placement must report at least one QNN node and
+zero CPU/unassigned nodes, CPU fallback must be false, and output drift must
+not exceed the predeclared limit.

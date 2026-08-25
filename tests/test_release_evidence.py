@@ -1,3 +1,4 @@
+import hashlib
 import json
 import runpy
 from collections.abc import Callable
@@ -12,6 +13,9 @@ RELEASE_FUNCTIONS = runpy.run_path(SCRIPT)
 build_release_evidence = cast(BuildReleaseEvidence, RELEASE_FUNCTIONS["build_release_evidence"])
 validate_android_device_bundle = cast(
     Callable[..., dict[str, object]], RELEASE_FUNCTIONS["validate_android_device_bundle"]
+)
+validate_qnn_evidence_bundle = cast(
+    Callable[..., dict[str, object]], RELEASE_FUNCTIONS["validate_qnn_evidence_bundle"]
 )
 
 
@@ -167,3 +171,81 @@ def test_release_bundle_marks_validated_device_evidence(tmp_path: Path) -> None:
     assert manifest["device_evidence"]["status"] == "validated_reference"
     assert (tmp_path / "release/device/report.md").is_file()
     assert (tmp_path / "release/device/summary.json").is_file()
+
+
+def _qnn_bundle(tmp_path: Path, *, cpu_fallback: bool = False, drift: float = 1e-5) -> Path:
+    artifacts = {}
+    for name, filename in {
+        "context_binary": "qnn_context.bin",
+        "placement_report": "placement.json",
+        "profile": "profile.json",
+        "logcat": "logcat.txt",
+    }.items():
+        artifact = tmp_path / filename
+        artifact.write_bytes(f"test-{name}".encode())
+        artifacts[name] = {
+            "path": filename,
+            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+        }
+    bundle = {
+        "schema_version": 1,
+        "project": "EdgeGenBench",
+        "backend": "QNNExecutionProvider",
+        "cpu_fallback": cpu_fallback,
+        "identity": {
+            "model_sha256": "a" * 64,
+            "input_sha256": "b" * 64,
+            "ort_version": "1.22.0",
+            "qairt_version": "2.45.0",
+            "device_fingerprint": "vendor/device/build",
+            "soc_model": "Snapdragon test SoC",
+        },
+        "placement": {
+            "provider": "QNNExecutionProvider",
+            "qnn_node_count": 9,
+            "cpu_node_count": 0,
+            "unassigned_node_count": 0,
+        },
+        "artifacts": artifacts,
+        "measurements": {
+            "cold_ms": 2.0,
+            "warm_p50_ms": 0.5,
+            "warm_p95_ms": 0.7,
+            "throughput_per_second": 2000.0,
+            "peak_rss_mb": 40.0,
+            "max_abs_drift_vs_fp32": drift,
+        },
+        "max_allowed_abs_drift": 1e-4,
+        "measurement_claims": {"npu_placement": "validated", "power": "not measured"},
+    }
+    path = tmp_path / "qnn-evidence.json"
+    path.write_text(json.dumps(bundle), encoding="utf-8")
+    return path
+
+
+def test_validates_qnn_evidence_and_artifact_checksums(tmp_path: Path) -> None:
+    summary = validate_qnn_evidence_bundle(_qnn_bundle(tmp_path))
+    assert summary["status"] == "validated_qnn_npu"
+    assert summary["cpu_fallback"] is False
+    assert len(cast(dict[str, object], summary["verified_artifacts"])) == 4
+
+
+def test_rejects_qnn_cpu_fallback_and_excess_drift(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="disable CPU fallback"):
+        validate_qnn_evidence_bundle(_qnn_bundle(tmp_path, cpu_fallback=True))
+    with pytest.raises(ValueError, match="drift exceeds"):
+        validate_qnn_evidence_bundle(_qnn_bundle(tmp_path, drift=0.01))
+
+
+def test_release_bundle_retains_validated_qnn_artifacts(tmp_path: Path) -> None:
+    manifest_path = build_release_evidence(
+        *_inputs(tmp_path),
+        tmp_path / "release",
+        git_revision="abc123",
+        version="0.1.8",
+        qnn_evidence=_qnn_bundle(tmp_path),
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["qnn_evidence"]["status"] == "validated_qnn_npu"
+    assert (tmp_path / "release/qnn/summary.json").is_file()
+    assert (tmp_path / "release/qnn/artifacts/qnn_context.bin").is_file()
