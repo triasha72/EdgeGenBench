@@ -8,8 +8,10 @@ import pytest
 
 BuildReleaseEvidence = Callable[..., Path]
 SCRIPT = Path(__file__).parents[1] / "scripts" / "build_release_evidence.py"
-build_release_evidence = cast(
-    BuildReleaseEvidence, runpy.run_path(SCRIPT)["build_release_evidence"]
+RELEASE_FUNCTIONS = runpy.run_path(SCRIPT)
+build_release_evidence = cast(BuildReleaseEvidence, RELEASE_FUNCTIONS["build_release_evidence"])
+validate_android_device_bundle = cast(
+    Callable[..., dict[str, object]], RELEASE_FUNCTIONS["validate_android_device_bundle"]
 )
 
 
@@ -95,3 +97,73 @@ def test_rejects_false_hardware_measurement_claim(tmp_path: Path) -> None:
             git_revision="abc123",
             version="0.1.5",
         )
+
+
+def _device_bundle(path: Path, *, output_drift: float = 0.0) -> Path:
+    result = {
+        "schema_version": 1,
+        "backend": "reference",
+        "cpu_fallback": False,
+        "cold_ms": 0.01,
+        "warm_mean_ms": 0.004,
+        "warm_p95_ms": 0.005,
+        "runs": 100,
+        "baseline_preprocess_mean_ms": 0.2,
+        "fused_preprocess_mean_ms": 0.1,
+        "preprocess_speedup_x": 2.0,
+        "preprocess_max_abs_drift": 0.0,
+        "output_max_abs_drift": output_drift,
+        "output": 0.15616,
+        "runtime_page_size_bytes": 4096,
+    }
+    bundle = {
+        "schema_version": 1,
+        "project": "EdgeGenBench",
+        "app": {"version_name": "0.1.7", "version_code": 8, "git_revision": "abc123"},
+        "device": {
+            "manufacturer": "Samsung",
+            "model": "SM-A356E",
+            "android_release": "16",
+            "sdk_int": 36,
+            "supported_abis": ["arm64-v8a"],
+        },
+        "measurement_claims": {
+            "backend": "reference",
+            "qnn_npu_placement": "not tested",
+            "power": "not measured",
+            "thermal": "not included in app export",
+        },
+        "result_count": 3,
+        "results": [result, {**result, "cold_ms": 0.02}, {**result, "cold_ms": 0.03}],
+    }
+    path.write_text(json.dumps(bundle), encoding="utf-8")
+    return path
+
+
+def test_validates_and_summarizes_android_export(tmp_path: Path) -> None:
+    summary = validate_android_device_bundle(_device_bundle(tmp_path / "device.json"))
+    assert summary["status"] == "validated_reference"
+    assert summary["result_count"] == 3
+    assert summary["runtime_page_sizes_bytes"] == [4096]
+    metrics = cast(dict[str, object], summary["metrics"])
+    cold = cast(dict[str, float], metrics["cold_ms"])
+    assert cold["mean"] == pytest.approx(0.02)
+
+
+def test_rejects_android_export_with_drift(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="drift gate"):
+        validate_android_device_bundle(_device_bundle(tmp_path / "device.json", output_drift=0.01))
+
+
+def test_release_bundle_marks_validated_device_evidence(tmp_path: Path) -> None:
+    manifest_path = build_release_evidence(
+        *_inputs(tmp_path),
+        tmp_path / "release",
+        git_revision="abc123",
+        version="0.1.7",
+        device_evidence=_device_bundle(tmp_path / "device.json"),
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["device_evidence"]["status"] == "validated_reference"
+    assert (tmp_path / "release/device/report.md").is_file()
+    assert (tmp_path / "release/device/summary.json").is_file()

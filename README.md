@@ -69,6 +69,9 @@ through the system share sheet.
 Android v0.1.7 makes that export self-describing by attaching the app version,
 CI Git revision, device/OS/ABI identity, observed runtime page size, all
 retained results, and explicit measurement-claim limitations.
+The exported JSON can be converted into a validated, checksum-bound device
+report with `scripts/validate_android_evidence.py` or attached directly to the
+cross-runtime release builder with `--device-evidence`.
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
