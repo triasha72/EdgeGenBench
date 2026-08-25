@@ -68,5 +68,9 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { output.text = report; run.isEnabled = true }
             }
         }
+        if (intent.getBooleanExtra("auto_run", false)) {
+            Log.i(TAG, "MainActivity.onCreate: auto_run requested")
+            run.performClick()
+        }
     }
 }

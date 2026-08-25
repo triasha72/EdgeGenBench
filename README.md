@@ -53,6 +53,9 @@ The checked-in Android configuration uses the deterministic reference backend;
 it never presents those timings as QNN or NPU measurements.
 The first physical-device reference capture and its limitations are documented
 in the [Samsung SM-A356E Android report](reports/android_sm_a356e_reference_v0_1_3.md).
+Repeated physical-device reference runs can be captured with
+`scripts/profile_android_reference.sh`; the output deliberately distinguishes
+post-run memory and thermal snapshots from sampled peaks and power measurements.
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
