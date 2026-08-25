@@ -17,7 +17,8 @@ device_count="$(adb devices | awk 'NR > 1 && $2 == "device" {count++} END {print
   echo "Exactly one authorized device is required" >&2
   exit 2
 }
-adb shell dumpsys package "$package_name" | grep -q 'versionName=' || {
+package_dump="$(adb shell dumpsys package "$package_name")"
+grep -q 'versionName=' <<< "$package_dump" || {
   echo "$package_name is not installed" >&2
   exit 2
 }
@@ -48,7 +49,8 @@ for ((run = 1; run <= repeats; run++)); do
 
   completed=false
   for _ in {1..80}; do
-    if adb logcat -d -s EdgeGenBench | grep -q 'power=not measured'; then
+    log_snapshot="$(adb logcat -d -s EdgeGenBench)"
+    if grep -q 'power=not measured' <<< "$log_snapshot"; then
       completed=true
       break
     fi
@@ -62,9 +64,9 @@ for ((run = 1; run <= repeats; run++)); do
 
   grep -q 'backend=reference (NOT QNN)' "$run_dir/logcat.txt"
   grep -q 'power=not measured' "$run_dir/logcat.txt"
-  cold_ms="$(sed -n 's/.*cold_ms=//p' "$run_dir/logcat.txt" | head -1 | tr -d '\r')"
-  warm_mean_ms="$(sed -n 's/.*warm_mean_ms=//p' "$run_dir/logcat.txt" | head -1 | tr -d '\r')"
-  warm_p95_ms="$(sed -n 's/.*warm_p95_ms=//p' "$run_dir/logcat.txt" | head -1 | tr -d '\r')"
+  cold_ms="$(awk -F'cold_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  warm_mean_ms="$(awk -F'warm_mean_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
+  warm_p95_ms="$(awk -F'warm_p95_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
   launch_total_ms="$(sed -n 's/^TotalTime: //p' "$run_dir/activity-start.txt" | tr -d '\r')"
   total_pss_kib="$(awk '/TOTAL PSS:/ {print $3; exit}' "$run_dir/meminfo.txt")"
   total_rss_kib="$(awk '/TOTAL RSS:/ {print $6; exit}' "$run_dir/meminfo.txt")"
