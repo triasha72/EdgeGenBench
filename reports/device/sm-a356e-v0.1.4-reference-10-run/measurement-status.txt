@@ -1,0 +1,5 @@
+backend=reference
+qnn-npu-placement=not-tested
+power=not-measured
+memory=post-run-snapshots-not-sampled-peaks
+thermal=platform-sensor-snapshots-not-calibrated-power

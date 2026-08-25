@@ -56,6 +56,8 @@ in the [Samsung SM-A356E Android report](reports/android_sm_a356e_reference_v0_1
 Repeated physical-device reference runs can be captured with
 `scripts/profile_android_reference.sh`; the output deliberately distinguishes
 post-run memory and thermal snapshots from sampled peaks and power measurements.
+The first retained 10-run capture is summarized in the
+[Samsung SM-A356E repeated-device report](reports/android_sm_a356e_reference_10_run_v0_1_4.md).
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
