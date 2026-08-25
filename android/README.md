@@ -14,8 +14,8 @@ adb logcat -s EdgeGenBench
 ```
 
 GitHub Actions publishes the verified build as
-`EdgeGenBench-0.1.5-baseline-fused-apk.zip`. Extract it and install
-`EdgeGenBench-0.1.5-baseline-fused-debug.apk`; do not reuse an older
+`EdgeGenBench-0.1.6-result-history-apk.zip`. Extract it and install
+`EdgeGenBench-0.1.6-result-history-debug.apk`; do not reuse an older
 `app-debug.apk` from Downloads. CI checks both APK ZIP alignment and every
 packaged native library's ELF load-segment alignment before publishing it.
 
@@ -23,6 +23,12 @@ The native result also reports baseline and fused preprocessing means, their
 speedup ratio, preprocessing maximum absolute drift, and downstream output
 maximum absolute drift. These are measured separately from the fused
 preprocess-plus-reference-inference cold/warm timings.
+
+JNI returns a versioned JSON result contract. The Kotlin layer validates the
+backend, run counts, latency values, and baseline/fused drift before displaying
+or retaining a run. The latest 20 valid runs are stored locally. **Export latest
+result** opens Android's share sheet with the machine-readable JSON evidence;
+sharing happens only after the user chooses a destination.
 
 The checked-in build uses the deterministic reference backend and says so in
 the UI and logs. QNN results require wiring a pinned QNN-enabled ONNX Runtime

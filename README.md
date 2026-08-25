@@ -63,6 +63,9 @@ bundle containing native baseline/fused benchmark JSON, the verified APK, the
 16 KiB alignment report, a Git revision, and SHA-256 checksums. The acceptance
 contract and the boundary between CI proof and physical-device claims are
 documented in the [end-to-end release acceptance guide](docs/end_to_end_acceptance.md).
+Android v0.1.6 validates JNI output as a versioned JSON contract, retains the
+latest 20 valid runs on-device, and exports the latest machine-readable result
+through the system share sheet.
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release

@@ -11,8 +11,8 @@ android {
         applicationId = "dev.edgegenbench"
         minSdk = 28
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.1.5"
+        versionCode = 7
+        versionName = "0.1.6"
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
@@ -35,4 +35,6 @@ kotlin { jvmToolchain(17) }
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }
