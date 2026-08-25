@@ -9,6 +9,8 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -23,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "MainActivity.onCreate: rendering high-contrast benchmark UI")
         val output = TextView(this).apply {
-            text = "EdgeGenBench is ready\n\nReference backend only\nTap Run to measure JNI + preprocessing + inference."
+            text = "Reference backend only\nTap Run to measure JNI + preprocessing + inference."
             setTextColor(Color.rgb(20, 24, 31))
             textSize = 18f
             setTextIsSelectable(true)
@@ -31,17 +33,30 @@ class MainActivity : AppCompatActivity() {
         }
         val run = Button(this).apply {
             text = "Run cold + warm benchmark"
+            contentDescription = "Run cold and warm benchmark"
             setTextColor(Color.WHITE)
             backgroundTintList = ColorStateList.valueOf(Color.rgb(9, 105, 218))
+        }
+        val heading = TextView(this).apply {
+            text = "EdgeGenBench is ready"
+            setTextColor(Color.rgb(20, 24, 31))
+            textSize = 26f
+            setPadding(0, 0, 0, 24)
         }
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
-            setPadding(32, 48, 32, 32)
+            addView(heading, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             addView(run, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             addView(output, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
+        ViewCompat.setOnApplyWindowInsetsListener(layout) { view, windowInsets ->
+            val bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(32 + bars.left, 24 + bars.top, 32 + bars.right, 32 + bars.bottom)
+            windowInsets
+        }
         setContentView(layout)
+        ViewCompat.requestApplyInsets(layout)
         Log.i(TAG, "MainActivity.onCreate: content view attached")
         run.setOnClickListener {
             run.isEnabled = false
