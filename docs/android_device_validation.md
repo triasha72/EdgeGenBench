@@ -11,6 +11,25 @@
 scripts/capture_android_device_evidence.sh path/to/app-debug.apk
 ```
 
+For v0.1.7 and later, tap **Export evidence bundle** after at least three runs,
+save the shared JSON file, and validate it on the host:
+
+```bash
+python scripts/validate_android_evidence.py \
+  path/to/android-evidence.json \
+  --output-dir reports/android-device-export
+```
+
+This fails closed on missing device/app identity, fewer than three retained
+runs, invalid reference placement metadata, non-finite measurements, drift over
+`1e-6`, missing runtime page size, or unsupported QNN/power claims. It produces
+`summary.json` and `report.md` for review.
+
+To include the validated export in the cross-runtime release bundle, pass the
+JSON file to `scripts/build_release_evidence.py --device-evidence`. The release
+manifest will mark it `validated_reference` and retain the raw JSON, computed
+summary, and Markdown report with checksums.
+
 5. Open the app, tap **Run cold + warm benchmark**, and run the capture command
    again so logcat contains the displayed result.
 

@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import shutil
+import statistics
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -25,6 +27,157 @@ def _sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def validate_android_device_bundle(path: Path, *, min_results: int = 3) -> dict[str, Any]:
+    bundle = _load_json(path)
+    if bundle.get("schema_version") != 1 or bundle.get("project") != "EdgeGenBench":
+        raise ValueError("unsupported Android evidence bundle")
+    app = bundle.get("app")
+    device = bundle.get("device")
+    claims = bundle.get("measurement_claims")
+    results = bundle.get("results")
+    if not isinstance(app, dict) or not all(
+        app.get(name) for name in ("version_name", "version_code", "git_revision")
+    ):
+        raise ValueError("Android evidence requires app version and Git revision")
+    if not isinstance(device, dict) or not all(
+        device.get(name)
+        for name in (
+            "manufacturer",
+            "model",
+            "android_release",
+            "sdk_int",
+            "supported_abis",
+        )
+    ):
+        raise ValueError("Android evidence requires complete device identity")
+    if not isinstance(claims, dict):
+        raise ValueError("Android evidence requires measurement claims")
+    if claims.get("backend") != "reference" or claims.get("qnn_npu_placement") != "not tested":
+        raise ValueError("reference evidence must not claim QNN/NPU placement")
+    if claims.get("power") != "not measured":
+        raise ValueError("power claims require a separate measured-power evidence path")
+    if claims.get("thermal") != "not included in app export":
+        raise ValueError("app export must not claim thermal evidence")
+    if not isinstance(results, list) or len(results) < min_results:
+        raise ValueError(f"Android evidence requires at least {min_results} results")
+    if bundle.get("result_count") != len(results):
+        raise ValueError("Android evidence result_count does not match results")
+
+    numeric_fields = (
+        "cold_ms",
+        "warm_mean_ms",
+        "warm_p95_ms",
+        "baseline_preprocess_mean_ms",
+        "fused_preprocess_mean_ms",
+        "preprocess_speedup_x",
+        "preprocess_max_abs_drift",
+        "output_max_abs_drift",
+        "output",
+    )
+    for index, result in enumerate(results):
+        if not isinstance(result, dict) or result.get("schema_version") != 1:
+            raise ValueError(f"result {index} has an unsupported schema")
+        if result.get("backend") != "reference" or result.get("cpu_fallback") is not False:
+            raise ValueError(f"result {index} has invalid reference placement metadata")
+        for name in numeric_fields:
+            value = result.get(name)
+            if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                raise ValueError(f"result {index} field {name} must be finite and numeric")
+        if any(float(result[name]) < 0 for name in numeric_fields if name != "output"):
+            raise ValueError(f"result {index} contains a negative measurement")
+        if float(result["warm_mean_ms"]) <= 0:
+            raise ValueError(f"result {index} requires positive warm latency")
+        if (
+            max(
+                float(result["preprocess_max_abs_drift"]),
+                float(result["output_max_abs_drift"]),
+            )
+            > 1e-6
+        ):
+            raise ValueError(f"result {index} fails the numerical drift gate")
+        if (
+            not isinstance(result.get("runtime_page_size_bytes"), int)
+            or result["runtime_page_size_bytes"] <= 0
+        ):
+            raise ValueError(f"result {index} requires a runtime page size")
+
+    def metric(name: str) -> dict[str, float]:
+        values = [float(result[name]) for result in results]
+        return {
+            "mean": statistics.fmean(values),
+            "median": statistics.median(values),
+            "min": min(values),
+            "max": max(values),
+        }
+
+    page_sizes = sorted({int(result["runtime_page_size_bytes"]) for result in results})
+    outputs = [float(result["output"]) for result in results]
+    summary = {
+        "schema_version": 1,
+        "status": "validated_reference",
+        "app": app,
+        "device": device,
+        "measurement_claims": claims,
+        "result_count": len(results),
+        "runtime_page_sizes_bytes": page_sizes,
+        "metrics": {
+            "cold_ms": metric("cold_ms"),
+            "warm_mean_ms": metric("warm_mean_ms"),
+            "warm_p95_ms": metric("warm_p95_ms"),
+            "preprocess_speedup_x": metric("preprocess_speedup_x"),
+            "throughput_inferences_per_second": {
+                "mean": statistics.fmean(1000.0 / float(r["warm_mean_ms"]) for r in results)
+            },
+            "max_preprocess_abs_drift": max(float(r["preprocess_max_abs_drift"]) for r in results),
+            "max_output_abs_drift": max(float(r["output_max_abs_drift"]) for r in results),
+            "max_output_spread": max(outputs) - min(outputs),
+        },
+    }
+    return summary
+
+
+def write_android_device_report(summary: dict[str, Any], path: Path) -> None:
+    metrics = summary["metrics"]
+    app = summary["app"]
+    device = summary["device"]
+    claims = summary["measurement_claims"]
+    lines = [
+        "# EdgeGenBench Android device evidence",
+        "",
+        f"- Status: `{summary['status']}`",
+        f"- App: `{app['version_name']}` (`{app['git_revision']}`)",
+        f"- Device: {device['manufacturer']} {device['model']}",
+        f"- Android: {device['android_release']} / API {device['sdk_int']}",
+        f"- Retained runs: {summary['result_count']}",
+        f"- Runtime page size(s): {summary['runtime_page_sizes_bytes']}",
+        "",
+        "| Metric | Mean | Median | Min | Max |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for name in ("cold_ms", "warm_mean_ms", "warm_p95_ms", "preprocess_speedup_x"):
+        value = metrics[name]
+        lines.append(
+            f"| {name} | {value['mean']:.6f} | {value['median']:.6f} | "
+            f"{value['min']:.6f} | {value['max']:.6f} |"
+        )
+    lines.extend(
+        [
+            "",
+            f"- Maximum preprocessing drift: `{metrics['max_preprocess_abs_drift']:.9g}`",
+            f"- Maximum output drift: `{metrics['max_output_abs_drift']:.9g}`",
+            f"- Output spread across runs: `{metrics['max_output_spread']:.9g}`",
+            f"- Backend: `{claims['backend']}`",
+            f"- QNN/NPU placement: `{claims['qnn_npu_placement']}`",
+            f"- Power: `{claims['power']}`",
+            f"- Thermal: `{claims['thermal']}`",
+            "",
+            "This report validates the exported reference-backend contract. It is not QNN/NPU, "
+            "measured-power, or thermal evidence.",
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _validate_benchmark(result: dict[str, Any], expected_preprocess: str) -> None:
@@ -95,15 +248,30 @@ def build_release_evidence(
         "claim": "No physical-device, NPU-placement, thermal, or power claim is made by CI.",
     }
     if device_evidence is not None:
-        if not device_evidence.is_dir():
-            raise ValueError("device evidence must be a directory")
         destination = output_dir / "device"
-        shutil.copytree(device_evidence, destination, dirs_exist_ok=True)
-        device_status = {
-            "status": "supplied_unverified",
-            "path": "device",
-            "claim": "Device evidence is retained verbatim and requires reviewer verification.",
-        }
+        if device_evidence.is_file():
+            destination.mkdir(exist_ok=True)
+            summary = validate_android_device_bundle(device_evidence)
+            shutil.copy2(device_evidence, destination / "android-evidence.json")
+            (destination / "summary.json").write_text(
+                json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+            )
+            write_android_device_report(summary, destination / "report.md")
+            device_status = {
+                "status": "validated_reference",
+                "path": "device/android-evidence.json",
+                "report": "device/report.md",
+                "claim": "Validated reference-backend device evidence; not QNN or power evidence.",
+            }
+        elif device_evidence.is_dir():
+            shutil.copytree(device_evidence, destination, dirs_exist_ok=True)
+            device_status = {
+                "status": "supplied_unverified",
+                "path": "device",
+                "claim": "Device evidence is retained verbatim and requires reviewer verification.",
+            }
+        else:
+            raise ValueError("device evidence must be a JSON file or directory")
 
     files = []
     for path in sorted(

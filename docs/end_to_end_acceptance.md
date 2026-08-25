@@ -52,3 +52,8 @@ accepted only when it contains a QNN context binary, a placement report naming
 `QNNExecutionProvider`, disabled CPU fallback, and output drift against the
 same model/input contract. Power remains `not measured` unless a real power
 measurement tool is used.
+
+When `--device-evidence` points to a v0.1.7 Android JSON export, the builder
+validates every retained result and generates `device/summary.json` plus
+`device/report.md`. Valid reference evidence is labeled `validated_reference`;
+arbitrary evidence directories remain `supplied_unverified`.
