@@ -180,6 +180,101 @@ def write_android_device_report(summary: dict[str, Any], path: Path) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def validate_qnn_evidence_bundle(path: Path) -> dict[str, Any]:
+    """Validate a physical-device QNN evidence manifest and its retained files."""
+    bundle = _load_json(path)
+    if bundle.get("schema_version") != 1 or bundle.get("project") != "EdgeGenBench":
+        raise ValueError("unsupported QNN evidence bundle")
+    if bundle.get("backend") != "QNNExecutionProvider":
+        raise ValueError("QNN evidence must name QNNExecutionProvider")
+    if bundle.get("cpu_fallback") is not False:
+        raise ValueError("QNN evidence must disable CPU fallback")
+
+    identity = bundle.get("identity")
+    if not isinstance(identity, dict) or not all(
+        identity.get(name)
+        for name in (
+            "model_sha256",
+            "input_sha256",
+            "ort_version",
+            "qairt_version",
+            "device_fingerprint",
+            "soc_model",
+        )
+    ):
+        raise ValueError("QNN evidence requires complete model, runtime, and device identity")
+    for name in ("model_sha256", "input_sha256"):
+        value = identity[name]
+        if not isinstance(value, str) or len(value) != 64:
+            raise ValueError(f"QNN identity {name} must be a SHA-256 digest")
+
+    placement = bundle.get("placement")
+    if not isinstance(placement, dict):
+        raise ValueError("QNN evidence requires placement metadata")
+    if (
+        placement.get("provider") != "QNNExecutionProvider"
+        or placement.get("unassigned_node_count") != 0
+        or placement.get("cpu_node_count") != 0
+        or not isinstance(placement.get("qnn_node_count"), int)
+        or placement["qnn_node_count"] <= 0
+    ):
+        raise ValueError("QNN evidence does not prove exclusive QNN placement")
+
+    artifacts = bundle.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise ValueError("QNN evidence requires retained artifacts")
+    root = path.parent
+    verified_artifacts: dict[str, dict[str, Any]] = {}
+    for name in ("context_binary", "placement_report", "profile", "logcat"):
+        item = artifacts.get(name)
+        if not isinstance(item, dict) or not item.get("path") or not item.get("sha256"):
+            raise ValueError(f"QNN evidence requires {name} path and SHA-256")
+        artifact_path = root / str(item["path"])
+        if not artifact_path.is_file() or _sha256(artifact_path) != item["sha256"]:
+            raise ValueError(f"QNN artifact {name} is missing or fails checksum validation")
+        verified_artifacts[name] = {
+            "path": str(item["path"]),
+            "bytes": artifact_path.stat().st_size,
+            "sha256": item["sha256"],
+        }
+
+    measurements = bundle.get("measurements")
+    required = ("cold_ms", "warm_p50_ms", "warm_p95_ms", "throughput_per_second", "peak_rss_mb")
+    if not isinstance(measurements, dict):
+        raise ValueError("QNN evidence requires measurements")
+    for name in required:
+        value = measurements.get(name)
+        if not isinstance(value, (int, float)) or not math.isfinite(float(value)) or value <= 0:
+            raise ValueError(f"QNN measurement {name} must be finite and positive")
+    if float(measurements["warm_p95_ms"]) < float(measurements["warm_p50_ms"]):
+        raise ValueError("QNN warm p95 latency cannot be lower than p50")
+    drift = measurements.get("max_abs_drift_vs_fp32")
+    if not isinstance(drift, (int, float)) or not math.isfinite(float(drift)) or drift < 0:
+        raise ValueError("QNN output drift must be finite and non-negative")
+    drift_limit = bundle.get("max_allowed_abs_drift")
+    if not isinstance(drift_limit, (int, float)) or drift_limit < 0 or drift > drift_limit:
+        raise ValueError("QNN output drift exceeds the declared acceptance limit")
+
+    claims = bundle.get("measurement_claims")
+    if not isinstance(claims, dict) or claims.get("npu_placement") != "validated":
+        raise ValueError("QNN evidence must explicitly claim validated NPU placement")
+    power = claims.get("power")
+    if power != "not measured" and not claims.get("power_tool"):
+        raise ValueError("measured power claims require a named measurement tool")
+
+    return {
+        "schema_version": 1,
+        "status": "validated_qnn_npu",
+        "backend": "QNNExecutionProvider",
+        "cpu_fallback": False,
+        "identity": identity,
+        "placement": placement,
+        "measurements": measurements,
+        "measurement_claims": claims,
+        "verified_artifacts": verified_artifacts,
+    }
+
+
 def _validate_benchmark(result: dict[str, Any], expected_preprocess: str) -> None:
     if result.get("schema_version") != 1:
         raise ValueError("native benchmark schema_version must be 1")
@@ -215,6 +310,7 @@ def build_release_evidence(
     git_revision: str,
     version: str,
     device_evidence: Path | None = None,
+    qnn_evidence: Path | None = None,
 ) -> Path:
     baseline = _load_json(baseline_path)
     fused = _load_json(fused_path)
@@ -273,6 +369,30 @@ def build_release_evidence(
         else:
             raise ValueError("device evidence must be a JSON file or directory")
 
+    qnn_status: dict[str, Any] = {
+        "status": "not_supplied",
+        "claim": "No QNN/NPU placement claim is made by this release bundle.",
+    }
+    if qnn_evidence is not None:
+        summary = validate_qnn_evidence_bundle(qnn_evidence)
+        destination = output_dir / "qnn"
+        destination.mkdir(exist_ok=True)
+        shutil.copy2(qnn_evidence, destination / "evidence.json")
+        for item in summary["verified_artifacts"].values():
+            source = qnn_evidence.parent / item["path"]
+            target = destination / "artifacts" / item["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        (destination / "summary.json").write_text(
+            json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        )
+        qnn_status = {
+            "status": "validated_qnn_npu",
+            "path": "qnn/evidence.json",
+            "summary": "qnn/summary.json",
+            "claim": "Exclusive QNN placement validated with CPU fallback disabled.",
+        }
+
     files = []
     for path in sorted(
         p for p in output_dir.rglob("*") if p.is_file() and p.name != "manifest.json"
@@ -300,6 +420,7 @@ def build_release_evidence(
             "power": "not measured",
         },
         "device_evidence": device_status,
+        "qnn_evidence": qnn_status,
         "files": files,
     }
     manifest_path = output_dir / "manifest.json"
@@ -317,6 +438,7 @@ def main() -> None:
     parser.add_argument("--git-revision", required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--device-evidence", type=Path)
+    parser.add_argument("--qnn-evidence", type=Path)
     args = parser.parse_args()
     manifest = build_release_evidence(
         args.baseline,
@@ -327,6 +449,7 @@ def main() -> None:
         git_revision=args.git_revision,
         version=args.version,
         device_evidence=args.device_evidence,
+        qnn_evidence=args.qnn_evidence,
     )
     print(f"Release evidence validated: {manifest}")
 

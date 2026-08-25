@@ -57,3 +57,19 @@ When `--device-evidence` points to a v0.1.7 Android JSON export, the builder
 validates every retained result and generates `device/summary.json` plus
 `device/report.md`. Valid reference evidence is labeled `validated_reference`;
 arbitrary evidence directories remain `supplied_unverified`.
+
+Physical QNN evidence uses a separate fail-closed contract. Create an evidence
+JSON alongside the retained context binary, placement report, profile, and
+logcat files, then run:
+
+```bash
+python scripts/validate_qnn_evidence.py reports/qnn/evidence.json \
+  --output reports/qnn/validated-summary.json
+```
+
+The validator verifies every artifact checksum, requires exclusive
+`QNNExecutionProvider` placement with zero CPU or unassigned nodes, rejects CPU
+fallback, checks positive latency/throughput/memory measurements, and enforces
+the declared FP32 drift limit. Add the same JSON to a release bundle with
+`--qnn-evidence`; accepted bundles are labeled `validated_qnn_npu`. This label
+is never generated from CI or an unvalidated directory.
