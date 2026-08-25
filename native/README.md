@@ -34,3 +34,9 @@ cmake --build build/qnn --parallel
 `session.disable_cpu_ep_fallback=1` is set by default. Graph-I/O quantization
 offload is also disabled, avoiding hidden CPU work around a QDQ graph. Session
 creation fails if any operator cannot be assigned to QNN.
+
+After the physical-device run, use `scripts/capture_qnn_evidence.py` to combine
+this JSON result with the context binary, provider placement report, detailed
+profile, logcat, exact model/input hashes, memory measurement, and FP32 drift.
+The complete command and evidence rules are in
+`docs/qnn_device_runbook.md`.
