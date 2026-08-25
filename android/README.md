@@ -13,6 +13,12 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb logcat -s EdgeGenBench
 ```
 
+GitHub Actions publishes the verified build as
+`EdgeGenBench-0.1.1-16kb-compatible-apk.zip`. Extract it and install
+`EdgeGenBench-0.1.1-16kb-compatible-debug.apk`; do not reuse an older
+`app-debug.apk` from Downloads. CI checks both APK ZIP alignment and every
+packaged native library's ELF load-segment alignment before publishing it.
+
 The checked-in build uses the deterministic reference backend and says so in
 the UI and logs. QNN results require wiring a pinned QNN-enabled ONNX Runtime
 package, following `../docs/qnn_device_runbook.md`, and retaining placement
