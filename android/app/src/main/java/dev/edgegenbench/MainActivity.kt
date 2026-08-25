@@ -4,6 +4,7 @@ import android.content.res.ColorStateList
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Build
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
@@ -40,7 +41,7 @@ class MainActivity : AppCompatActivity() {
             backgroundTintList = ColorStateList.valueOf(Color.rgb(9, 105, 218))
         }
         val export = Button(this).apply {
-            text = "Export latest result"
+            text = "Export evidence bundle"
             isEnabled = store.latest() != null
         }
         val history = TextView(this).apply {
@@ -96,11 +97,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
         export.setOnClickListener {
-            val latest = store.latest() ?: return@setOnClickListener
+            val results = store.history()
+            if (results.isEmpty()) return@setOnClickListener
+            val evidence = EvidenceBundle.build(
+                EvidenceContext(
+                    appVersionName = BuildConfig.VERSION_NAME,
+                    appVersionCode = BuildConfig.VERSION_CODE.toLong(),
+                    gitRevision = BuildConfig.GIT_REVISION,
+                    manufacturer = Build.MANUFACTURER,
+                    model = Build.MODEL,
+                    androidRelease = Build.VERSION.RELEASE,
+                    sdkInt = Build.VERSION.SDK_INT,
+                    supportedAbis = Build.SUPPORTED_ABIS.toList(),
+                ),
+                results,
+            )
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                 type = "application/json"
                 putExtra(Intent.EXTRA_SUBJECT, "EdgeGenBench benchmark evidence")
-                putExtra(Intent.EXTRA_TEXT, latest.toJson())
+                putExtra(Intent.EXTRA_TEXT, evidence)
             }, "Export EdgeGenBench result"))
         }
         if (intent.getBooleanExtra("auto_run", false)) {

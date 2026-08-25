@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <numeric>
 #include <sstream>
+#include <unistd.h>
 #include <vector>
 
 #include "edgegenbench/runtime.hpp"
@@ -116,6 +117,7 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
          << ",\"preprocess_max_abs_drift\":" << preprocess_max_abs_drift
          << ",\"output_max_abs_drift\":" << output_max_abs_drift
          << ",\"output\":" << result.data.at(0)
+         << ",\"runtime_page_size_bytes\":" << sysconf(_SC_PAGESIZE)
          << ",\"power\":\"not measured\"}";
     return env->NewStringUTF(json.str().c_str());
   } catch (const std::exception& error) {

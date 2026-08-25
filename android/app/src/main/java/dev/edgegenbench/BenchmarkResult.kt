@@ -17,6 +17,7 @@ data class BenchmarkResult(
     val preprocessMaxAbsDrift: Double,
     val outputMaxAbsDrift: Double,
     val output: Double,
+    val runtimePageSizeBytes: Long,
     val power: String,
     val capturedAtEpochMs: Long,
 ) {
@@ -34,6 +35,7 @@ data class BenchmarkResult(
         appendLine("preprocess_max_abs_drift=${preprocessMaxAbsDrift.format(9)}")
         appendLine("output_max_abs_drift=${outputMaxAbsDrift.format(9)}")
         appendLine("output=${output.format(6)}")
+        appendLine("runtime_page_size_bytes=$runtimePageSizeBytes")
         append("power=$power")
     }
 
@@ -52,6 +54,7 @@ data class BenchmarkResult(
         .put("preprocess_max_abs_drift", preprocessMaxAbsDrift)
         .put("output_max_abs_drift", outputMaxAbsDrift)
         .put("output", output)
+        .put("runtime_page_size_bytes", runtimePageSizeBytes)
         .put("power", power)
         .put("captured_at_epoch_ms", capturedAtEpochMs)
         .toString()
@@ -75,12 +78,14 @@ data class BenchmarkResult(
                 preprocessMaxAbsDrift = value.nonNegativeDouble("preprocess_max_abs_drift"),
                 outputMaxAbsDrift = value.nonNegativeDouble("output_max_abs_drift"),
                 output = value.getDouble("output"),
+                runtimePageSizeBytes = value.optLong("runtime_page_size_bytes", 0),
                 power = value.getString("power"),
                 capturedAtEpochMs = value.optLong("captured_at_epoch_ms", System.currentTimeMillis()),
             )
             require(result.backend == "reference") { "Unexpected backend: ${result.backend}" }
             require(!result.cpuFallback) { "CPU fallback must remain disabled" }
             require(result.runs > 0 && result.preprocessElements > 0) { "Invalid benchmark counts" }
+            require(result.runtimePageSizeBytes >= 0) { "Invalid runtime page size" }
             require(result.preprocessMaxAbsDrift <= 1e-6 && result.outputMaxAbsDrift <= 1e-6) {
                 "Baseline/fused numerical parity failed"
             }
