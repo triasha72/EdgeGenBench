@@ -51,6 +51,8 @@ target provides CMake/CTest coverage, tensor validation, explicit failures,
 JSON latency output, and equivalent baseline/fused FP32 preprocessing paths.
 The checked-in Android configuration uses the deterministic reference backend;
 it never presents those timings as QNN or NPU measurements.
+The first physical-device reference capture and its limitations are documented
+in the [Samsung SM-A356E Android report](reports/android_sm_a356e_reference_v0_1_3.md).
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release

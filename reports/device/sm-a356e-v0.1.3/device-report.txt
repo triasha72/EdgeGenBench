@@ -1,0 +1,10 @@
+captured_at=2026-08-25T16:52:08Z
+manufacturer=samsung
+model=SM-A356E
+device=a35x
+android=16
+sdk=36
+abi=arm64-v8a
+page_size=4096
+    versionCode=4 minSdk=28 targetSdk=35
+    versionName=0.1.3
