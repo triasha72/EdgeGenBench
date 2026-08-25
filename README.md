@@ -58,6 +58,11 @@ Repeated physical-device reference runs can be captured with
 post-run memory and thermal snapshots from sampled peaks and power measurements.
 The first retained 10-run capture is summarized in the
 [Samsung SM-A356E repeated-device report](reports/android_sm_a356e_reference_10_run_v0_1_4.md).
+Every successful CI run also assembles a versioned end-to-end release-evidence
+bundle containing native baseline/fused benchmark JSON, the verified APK, the
+16 KiB alignment report, a Git revision, and SHA-256 checksums. The acceptance
+contract and the boundary between CI proof and physical-device claims are
+documented in the [end-to-end release acceptance guide](docs/end_to_end_acceptance.md).
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
