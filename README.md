@@ -66,6 +66,9 @@ documented in the [end-to-end release acceptance guide](docs/end_to_end_acceptan
 Android v0.1.6 validates JNI output as a versioned JSON contract, retains the
 latest 20 valid runs on-device, and exports the latest machine-readable result
 through the system share sheet.
+Android v0.1.7 makes that export self-describing by attaching the app version,
+CI Git revision, device/OS/ABI identity, observed runtime page size, all
+retained results, and explicit measurement-claim limitations.
 
 ```bash
 cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release

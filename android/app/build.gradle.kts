@@ -3,6 +3,8 @@ plugins {
     kotlin("android")
 }
 
+val edgegenbenchGitRevision = providers.environmentVariable("GITHUB_SHA").orElse("local").get()
+
 android {
     namespace = "dev.edgegenbench"
     compileSdk = 35
@@ -11,8 +13,9 @@ android {
         applicationId = "dev.edgegenbench"
         minSdk = 28
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.1.6"
+        versionCode = 8
+        versionName = "0.1.7"
+        buildConfigField("String", "GIT_REVISION", "\"$edgegenbenchGitRevision\"")
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
@@ -22,7 +25,10 @@ android {
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
-    buildFeatures { viewBinding = false }
+    buildFeatures {
+        viewBinding = false
+        buildConfig = true
+    }
     packaging { jniLibs { useLegacyPackaging = false } }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
