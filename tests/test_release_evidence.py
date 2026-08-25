@@ -1,9 +1,16 @@
 import json
+import runpy
+from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import pytest
 
-from scripts.build_release_evidence import build_release_evidence
+BuildReleaseEvidence = Callable[..., Path]
+SCRIPT = Path(__file__).parents[1] / "scripts" / "build_release_evidence.py"
+build_release_evidence = cast(
+    BuildReleaseEvidence, runpy.run_path(SCRIPT)["build_release_evidence"]
+)
 
 
 def _benchmark(path: Path, preprocess: str, output: float = 0.15616) -> Path:
