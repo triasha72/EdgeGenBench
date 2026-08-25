@@ -88,8 +88,8 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
     std::sort(samples.begin(), samples.end());
     const double average = std::accumulate(samples.begin(), samples.end(), 0.0) / samples.size();
     const auto p95 = samples[static_cast<std::size_t>((samples.size() - 1) * 0.95)];
-    std::ostringstream report;
-    report << std::fixed << std::setprecision(6)
+    std::ostringstream display_report;
+    display_report << std::fixed << std::setprecision(6)
            << "backend=reference (NOT QNN)\nCPU fallback=false (reference backend)\n"
            << "cold_ms=" << cold_ms << "\nwarm_mean_ms=" << average
            << "\nwarm_p95_ms=" << p95 << "\nruns=" << runs
@@ -101,8 +101,23 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
            << "\noutput_max_abs_drift=" << output_max_abs_drift
            << "\noutput=" << result.data.at(0)
            << "\npower=not measured";
-    __android_log_print(ANDROID_LOG_INFO, "EdgeGenBench", "%s", report.str().c_str());
-    return env->NewStringUTF(report.str().c_str());
+    __android_log_print(ANDROID_LOG_INFO, "EdgeGenBench", "%s", display_report.str().c_str());
+    std::ostringstream json;
+    json << std::fixed << std::setprecision(9)
+         << "{\"schema_version\":1,\"backend\":\"reference\",\"cpu_fallback\":false"
+         << ",\"cold_ms\":" << cold_ms
+         << ",\"warm_mean_ms\":" << average
+         << ",\"warm_p95_ms\":" << p95
+         << ",\"runs\":" << runs
+         << ",\"baseline_preprocess_mean_ms\":" << baseline_preprocess_mean_ms
+         << ",\"fused_preprocess_mean_ms\":" << fused_preprocess_mean_ms
+         << ",\"preprocess_elements\":" << preprocess_elements
+         << ",\"preprocess_speedup_x\":" << preprocess_speedup
+         << ",\"preprocess_max_abs_drift\":" << preprocess_max_abs_drift
+         << ",\"output_max_abs_drift\":" << output_max_abs_drift
+         << ",\"output\":" << result.data.at(0)
+         << ",\"power\":\"not measured\"}";
+    return env->NewStringUTF(json.str().c_str());
   } catch (const std::exception& error) {
     __android_log_print(ANDROID_LOG_ERROR, "EdgeGenBench", "%s", error.what());
     jclass cls = env->FindClass("java/lang/RuntimeException");
