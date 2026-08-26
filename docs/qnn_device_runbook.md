@@ -57,3 +57,43 @@ Validation is intentionally fail-closed: all four retained artifacts must
 match their SHA-256 digests, placement must report at least one QNN node and
 zero CPU/unassigned nodes, CPU fallback must be false, and output drift must
 not exceed the predeclared limit.
+
+The repository can assemble that manifest without manually calculating hashes:
+
+```bash
+python scripts/capture_qnn_evidence.py \
+  --benchmark reports/device/qnn-benchmark.json \
+  --context-binary reports/device/qnn_context.bin \
+  --placement-report reports/device/placement.json \
+  --profile reports/device/qnn-profile.json \
+  --logcat reports/device/logcat.txt \
+  --model models/model.qdq.onnx \
+  --input reports/device/input.bin \
+  --output-dir reports/device/validated-qnn \
+  --ort-version "$ORT_VERSION" \
+  --qairt-version "$QAIRT_VERSION" \
+  --device-fingerprint "$(adb shell getprop ro.build.fingerprint)" \
+  --soc-model "$(adb shell getprop ro.soc.model)" \
+  --cold-ms "$COLD_MS" \
+  --peak-rss-mb "$PEAK_RSS_MB" \
+  --max-abs-drift-vs-fp32 "$OUTPUT_DRIFT" \
+  --max-allowed-abs-drift 0.0001
+```
+
+`placement.json` is deliberately separate from the native benchmark output.
+Populate its node counts from the retained ORT/QNN placement log; do not infer
+exclusive placement merely because session creation succeeded:
+
+```json
+{
+  "provider": "QNNExecutionProvider",
+  "qnn_node_count": 9,
+  "cpu_node_count": 0,
+  "unassigned_node_count": 0
+}
+```
+
+The collector copies all four artifacts into one portable directory, computes
+their hashes plus the model/input hashes, calculates throughput from batch size
+and warm p50 latency, writes `evidence.json`, and runs the validator before
+reporting success.
