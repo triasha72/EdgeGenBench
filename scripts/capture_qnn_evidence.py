@@ -50,19 +50,30 @@ def capture_qnn_evidence(
     power_tool: str | None = None,
 ) -> Path:
     benchmark = _load_json(benchmark_path)
-    benchmark_placement = benchmark.get("placement")
-    if benchmark.get("backend") != "qnn" or not isinstance(benchmark_placement, dict):
-        raise ValueError("benchmark must be a QNN native runtime result")
-    if (
-        benchmark_placement.get("backend") != "QNNExecutionProvider"
-        or benchmark_placement.get("cpu_fallback") is not False
-        or benchmark_placement.get("hardware_measurement") is not True
-    ):
-        raise ValueError("benchmark does not prove fail-closed QNN session configuration")
-    latency = benchmark.get("latency_ms")
-    if not isinstance(latency, dict):
-        raise ValueError("benchmark requires latency_ms")
-    batch_size = benchmark.get("batch_size")
+    if benchmark.get("backend") == "qnn":
+        benchmark_placement = benchmark.get("placement")
+        if not isinstance(benchmark_placement, dict) or (
+            benchmark_placement.get("backend") != "QNNExecutionProvider"
+            or benchmark_placement.get("cpu_fallback") is not False
+            or benchmark_placement.get("hardware_measurement") is not True
+        ):
+            raise ValueError("benchmark does not prove fail-closed QNN session configuration")
+        latency = benchmark.get("latency_ms")
+        if not isinstance(latency, dict):
+            raise ValueError("native benchmark requires latency_ms")
+        p50 = float(latency["p50"])
+        p95 = float(latency["p95"])
+        batch_size = benchmark.get("batch_size")
+    elif benchmark.get("backend") == "QNNExecutionProvider":
+        if benchmark.get("cpu_fallback") is not False:
+            raise ValueError("Android QNN benchmark must disable CPU fallback")
+        p50 = float(benchmark.get("warm_mean_ms", -1))
+        p95 = float(benchmark.get("warm_p95_ms", -1))
+        batch_size = 1
+        cold_ms = float(benchmark.get("cold_ms", cold_ms))
+        max_abs_drift_vs_fp32 = float(benchmark.get("output_max_abs_drift", max_abs_drift_vs_fp32))
+    else:
+        raise ValueError("benchmark must be a native or Android QNN runtime result")
     if not isinstance(batch_size, int) or batch_size <= 0:
         raise ValueError("benchmark requires a positive batch_size")
 
@@ -87,8 +98,6 @@ def capture_qnn_evidence(
             "sha256": _sha256(target),
         }
 
-    p50 = float(latency["p50"])
-    p95 = float(latency["p95"])
     bundle: dict[str, Any] = {
         "schema_version": 1,
         "project": "EdgeGenBench",

@@ -97,3 +97,26 @@ The collector copies all four artifacts into one portable directory, computes
 their hashes plus the model/input hashes, calculates throughput from batch size
 and warm p50 latency, writes `evidence.json`, and runs the validator before
 reporting success.
+
+## Android QNN app handoff
+
+For the opt-in QNN APK, first derive `placement.json` from the retained verbose
+ORT/QNN log. Node counts must come from provider-assignment evidence, not from
+the app's backend label. Then run the automated ADB handoff from the repository
+root:
+
+```bash
+scripts/capture_android_qnn_device.sh \
+  artifacts/neural_int8/neural_surrogate_int8.onnx \
+  reports/device/placement.json \
+  "$ORT_VERSION" "$QAIRT_VERSION" 0.0001 \
+  "reports/device/android-qnn-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+The script requires exactly one authorized device. It cold-launches the app,
+samples RSS while inference is running, verifies the Android JSON names
+`QNNExecutionProvider` with fallback disabled, saves complete logcat/memory/
+thermal/device identity, extracts the private context binary and profile using
+debug-package `run-as`, recreates the exact deterministic ten-float input, and
+passes everything to the QNN evidence validator. Thermal output is retained as
+diagnostic context; power remains `not measured`.
