@@ -165,6 +165,12 @@ Cross-provider timings should not be interpreted as a direct hardware ranking.
 
 ## Qualcomm QNN / Snapdragon deployment
 
+The consolidated [portfolio acceptance matrix](reports/portfolio_acceptance.md)
+separates validated CI/device lanes from evidence still pending. It also checks
+whether the model hash in the historical Qualcomm report matches the current
+ONNX artifact; the current mismatch is intentionally visible and must be
+resolved by restoring the reported model or re-running AI Hub.
+
 EdgeGenBench now includes a validated Qualcomm QNN deployment path for the
 compact neural surrogate.
 

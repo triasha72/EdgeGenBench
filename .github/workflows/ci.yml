@@ -141,6 +141,12 @@ jobs:
         run: |
           python scripts/validate_tracked_qualcomm_int8.py
 
+      - name: Build cross-runtime portfolio acceptance matrix
+        run: |
+          python scripts/build_portfolio_acceptance.py \
+            --output-json /tmp/portfolio-acceptance.json \
+            --output-markdown /tmp/portfolio-acceptance.md
+
   release-acceptance:
     name: End-to-end release acceptance
     runs-on: ubuntu-latest

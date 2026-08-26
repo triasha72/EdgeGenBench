@@ -21,6 +21,8 @@ data/processed/*
 reports/*
 !reports/.gitkeep
 !reports/qualcomm_qnn_v0_1.json
+!reports/portfolio_acceptance.json
+!reports/portfolio_acceptance.md
 
 # Deployment artifacts
 *.onnx

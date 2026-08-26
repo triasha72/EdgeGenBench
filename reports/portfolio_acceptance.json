@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "project": "EdgeGenBench",
+  "lanes": {
+    "native_cpp": {
+      "status": "validated_in_ci",
+      "claim": "C++17 reference runtime, tests, CLI, and fused preprocessing acceptance."
+    },
+    "android_reference": {
+      "status": "validated_physical_device",
+      "device": "Samsung SM-A356E",
+      "report": "reports/android_sm_a356e_reference_10_run_v0_1_4.md",
+      "claim": "Reference JNI/application measurements; not QNN."
+    },
+    "qualcomm_ai_hub_qnn": {
+      "status": "tracked_ai_hub_report_model_provenance_mismatch",
+      "device": "Snapdragon 8 Elite QRD",
+      "backend": "QNN HTP",
+      "qairt_version": "2.45.0.260326154327",
+      "context_model_id": "mnl7771jm",
+      "link_job_id": "jp16x3285",
+      "graphs": [
+        {
+          "graph": "edgegenbench_batch1",
+          "batch_size": 1,
+          "latency_ms": 0.038,
+          "throughput_samples_per_second": 26315.78947368421,
+          "peak_memory_bytes": 122822656,
+          "compute_units": {
+            "NPU": 9
+          },
+          "max_normalized_drift": 0.0036358769310459917,
+          "profile_job_id": "jp4308d85",
+          "inference_job_id": "jpxx2m63p"
+        },
+        {
+          "graph": "edgegenbench_batch32",
+          "batch_size": 32,
+          "latency_ms": 0.034,
+          "throughput_samples_per_second": 941176.4705882353,
+          "peak_memory_bytes": 122888192,
+          "compute_units": {
+            "NPU": 9
+          },
+          "max_normalized_drift": 0.003222448271801646,
+          "profile_job_id": "jgnk8xmkg",
+          "inference_job_id": "jprwj9205"
+        },
+        {
+          "graph": "edgegenbench_batch256",
+          "batch_size": 256,
+          "latency_ms": 0.057,
+          "throughput_samples_per_second": 4491228.070175438,
+          "peak_memory_bytes": 123211776,
+          "compute_units": {
+            "NPU": 9
+          },
+          "max_normalized_drift": 0.003222448271801646,
+          "profile_job_id": "jp2enj9rp",
+          "inference_job_id": "jpym0nj8p"
+        }
+      ],
+      "reported_source_model_sha256": "40f588b329b98fdaa38a7eda202fc89573fce5e91a4193f0a0a93b3142c0382f",
+      "current_source_model_sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
+      "source_model_matches_repository": false,
+      "claim_boundary": "Physical AI Hub model profiling; not Android APK end-to-end latency."
+    },
+    "android_qnn_apk": {
+      "status": "implementation_complete_evidence_pending",
+      "claim": "Build/JNI/capture paths exist; requires a supported Snapdragon APK run."
+    },
+    "android_16kb_runtime": {
+      "status": "packaging_validated_runtime_pending",
+      "claim": "ELF/APK alignment passes; runtime PAGE_SIZE=16384 evidence is pending."
+    },
+    "power": {
+      "status": "not_measured",
+      "claim": "No power-savings claim is made without a named calibrated tool."
+    }
+  }
+}
