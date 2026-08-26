@@ -55,8 +55,25 @@ class BenchmarkResultTest {
         BenchmarkResult.parse(validJson.replace("\"output_max_abs_drift\": 0.0", "\"output_max_abs_drift\": 0.01"))
     }
 
+    @Test fun acceptsQnnResultWithoutRelabelingItAsReference() {
+        val result = BenchmarkResult.parse(validJson.replace("\"reference\"", "\"QNNExecutionProvider\""))
+        assertEquals("QNNExecutionProvider", result.backend)
+        assertTrue(!result.toDisplayText().contains("NOT QNN"))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsUnexpectedBackend() {
-        BenchmarkResult.parse(validJson.replace("\"reference\"", "\"QNNExecutionProvider\""))
+        BenchmarkResult.parse(validJson.replace("\"reference\"", "\"CPUExecutionProvider\""))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsMixedBackendEvidence() {
+        EvidenceBundle.build(
+            EvidenceContext("0.1.7", 8, "abc123", "Samsung", "SM-A356E", "16", 36, listOf("arm64-v8a")),
+            listOf(
+                BenchmarkResult.parse(validJson),
+                BenchmarkResult.parse(validJson.replace("\"reference\"", "\"QNNExecutionProvider\"")),
+            ),
+        )
     }
 }

@@ -20,6 +20,9 @@ object EvidenceBundle {
         require(context.gitRevision.isNotBlank()) { "Git revision is required" }
         require(context.model.isNotBlank() && context.sdkInt > 0) { "Device identity is required" }
         require(results.isNotEmpty()) { "At least one benchmark result is required" }
+        val backends = results.map { it.backend }.distinct()
+        require(backends.size == 1) { "Reference and QNN runs must be exported separately" }
+        val qnn = backends.single() == "QNNExecutionProvider"
         val pageSizes = results.map { it.runtimePageSizeBytes }.filter { it > 0 }.distinct()
         return JSONObject()
             .put("schema_version", 1)
@@ -36,8 +39,8 @@ object EvidenceBundle {
                 .put("supported_abis", JSONArray(context.supportedAbis))
                 .put("observed_runtime_page_sizes_bytes", JSONArray(pageSizes)))
             .put("measurement_claims", JSONObject()
-                .put("backend", "reference")
-                .put("qnn_npu_placement", "not tested")
+                .put("backend", backends.single())
+                .put("qnn_npu_placement", if (qnn) "requires external placement validation" else "not tested")
                 .put("power", "not measured")
                 .put("thermal", "not included in app export"))
             .put("result_count", results.size)
