@@ -1,5 +1,6 @@
 import json
 import runpy
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import cast
@@ -8,7 +9,11 @@ import pytest
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "capture_qnn_evidence.py"
 CaptureQnnEvidence = Callable[..., Path]
-capture_qnn_evidence = cast(CaptureQnnEvidence, runpy.run_path(SCRIPT)["capture_qnn_evidence"])
+sys.path.insert(0, str(SCRIPT.parent))
+try:
+    capture_qnn_evidence = cast(CaptureQnnEvidence, runpy.run_path(SCRIPT)["capture_qnn_evidence"])
+finally:
+    sys.path.pop(0)
 
 
 def _file(path: Path, value: str) -> Path:
