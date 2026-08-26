@@ -209,6 +209,13 @@ The complete machine-readable result is stored in:
 
 `reports/qualcomm_qnn_v0_1.json`
 
+The linked QNN context binary used by that report is stored in:
+
+`artifacts/qualcomm_ai_hub/current_model/edgegenbench_multigraph.bin`
+
+`scripts/build_portfolio_acceptance.py` validates the committed binary's size
+and SHA-256 before accepting the Qualcomm lane.
+
 ## Credential boundary
 
 The Qualcomm AI Hub token is configured outside the repository.

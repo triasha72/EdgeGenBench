@@ -198,6 +198,12 @@ Complete provenance and linked-graph validation are stored in:
 
 `reports/qualcomm_qnn_v0_1.json`
 
+The exact linked multi-graph QNN context binary is tracked at
+`artifacts/qualcomm_ai_hub/current_model/edgegenbench_multigraph.bin`. The
+portfolio acceptance builder verifies its committed Git-blob SHA-256 and size
+against the Qualcomm report, so CI fails closed if the deployment artifact is
+missing or altered.
+
 The authenticated current-model run is reproducible with:
 
 ```bash
