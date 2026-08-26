@@ -78,3 +78,46 @@ def test_capture_builds_self_validating_qnn_bundle(tmp_path: Path) -> None:
 def test_capture_rejects_benchmark_with_cpu_fallback(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="fail-closed QNN"):
         _capture(tmp_path, cpu_fallback=True)
+
+
+def test_capture_accepts_android_qnn_result_contract(tmp_path: Path) -> None:
+    evidence = _capture(tmp_path)
+    benchmark_path = tmp_path / "benchmark.json"
+    benchmark_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "backend": "QNNExecutionProvider",
+                "cpu_fallback": False,
+                "cold_ms": 3.0,
+                "warm_mean_ms": 0.4,
+                "warm_p95_ms": 0.6,
+                "output_max_abs_drift": 0.00001,
+            }
+        ),
+        encoding="utf-8",
+    )
+    value = json.loads(evidence.read_text(encoding="utf-8"))
+    # Reuse the already retained inputs/artifacts but replace the benchmark source.
+    captured = capture_qnn_evidence(
+        benchmark_path=benchmark_path,
+        context_binary=tmp_path / "context.bin",
+        placement_report=tmp_path / "placement.json",
+        profile=tmp_path / "profile.json",
+        logcat=tmp_path / "logcat.txt",
+        model=tmp_path / "model.onnx",
+        input_data=tmp_path / "input.bin",
+        output_dir=tmp_path / "android-evidence",
+        ort_version=value["identity"]["ort_version"],
+        qairt_version=value["identity"]["qairt_version"],
+        device_fingerprint=value["identity"]["device_fingerprint"],
+        soc_model=value["identity"]["soc_model"],
+        cold_ms=1.0,
+        peak_rss_mb=40.0,
+        max_abs_drift_vs_fp32=0.0,
+        max_allowed_abs_drift=0.0001,
+    )
+    android = json.loads(captured.read_text(encoding="utf-8"))
+    assert android["measurements"]["cold_ms"] == 3.0
+    assert android["measurements"]["warm_p50_ms"] == 0.4
+    assert android["measurements"]["throughput_per_second"] == 2500.0
