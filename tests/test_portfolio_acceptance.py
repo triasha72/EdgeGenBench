@@ -15,9 +15,9 @@ validate_ai_hub_qnn = cast(ValidateQnn, FUNCTIONS["validate_ai_hub_qnn"])
 def test_validates_tracked_ai_hub_qnn_evidence() -> None:
     root = Path(__file__).parents[1]
     result = validate_ai_hub_qnn(root / "reports/qualcomm_qnn_v0_1.json", root)
-    assert result["status"] == "tracked_ai_hub_report_model_provenance_mismatch"
+    assert result["status"] == "validated_ai_hub_physical_qnn"
     assert result["backend"] == "QNN HTP"
-    assert result["source_model_matches_repository"] is False
+    assert result["source_model_matches_repository"] is True
     assert len(cast(list[object], result["graphs"])) == 3
 
 

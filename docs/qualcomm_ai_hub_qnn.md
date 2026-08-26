@@ -90,11 +90,11 @@ containing three statically specialized graph variants:
 
 Linked target model:
 
-`mnl7771jm`
+`mnjjex79n`
 
 Link job:
 
-`jp16x3285`
+`jgk4d8lvp`
 
 The linked artifact retains:
 
@@ -107,9 +107,9 @@ The linked artifact retains:
 
 | Graph | Batch | AI Hub profile latency | Derived model throughput | Peak memory | Compute units |
 |---|---:|---:|---:|---:|---|
-| `edgegenbench_batch1` | 1 | 38 us | 26,315.8 samples/s | 122,937,344 B | NPU: 9 |
-| `edgegenbench_batch32` | 32 | 34 us | 941,176.5 samples/s | 122,888,192 B | NPU: 9 |
-| `edgegenbench_batch256` | 256 | 57 us | 4,491,228.1 samples/s | 123,211,776 B | NPU: 9 |
+| `edgegenbench_batch1` | 1 | 38 us | 26,315.8 samples/s | 122,855,424 B | NPU: 9 |
+| `edgegenbench_batch32` | 32 | 40 us | 800,000.0 samples/s | 122,880,000 B | NPU: 9 |
+| `edgegenbench_batch256` | 256 | 47 us | 5,446,808.5 samples/s | 122,896,384 B | NPU: 9 |
 
 The throughput values are derived from the configured batch size divided by
 AI Hub's estimated model-inference time. They are not end-to-end Android
@@ -125,8 +125,8 @@ All 900 held-out test rows were evaluated through the linked batch-1 graph.
 
 | Metric | Local FP32 ONNX | Linked Snapdragon QNN |
 |---|---:|---:|
-| Mean R2 | 0.996955004 | 0.996953249 |
-| Mean NRMSE | 0.050432628 | 0.050444571 |
+| Mean R2 | 0.996955989 | 0.996954462 |
+| Mean NRMSE | 0.050425306 | 0.050449587 |
 
 Deployment drift:
 
@@ -193,16 +193,16 @@ Install Qualcomm-specific dependencies with:
 pip install -e '.[qualcomm]'
 ```
 
-Validate the linked multi-graph target:
+Compile, link, profile, and validate the current ONNX model:
 
 ```bash
-python scripts/validate_qualcomm_qnn_multigraph.py
+PYTHONPATH=src python scripts/rerun_qualcomm_qnn_current_model.py
 ```
 
 Build the canonical evidence report:
 
 ```bash
-python scripts/build_qualcomm_qnn_report.py
+python scripts/build_portfolio_acceptance.py
 ```
 
 The complete machine-readable result is stored in:

@@ -171,9 +171,8 @@ def build_portfolio_acceptance(
         [
             "",
             "AI Hub measurements are physical-device model profiles, not Android "
-            "application end-to-end timings. They cannot be promoted as current-model "
-            "acceptance until the reported model artifact is restored or the current model "
-            "is re-profiled.",
+            "application end-to-end timings. Current-model acceptance requires source-model "
+            "provenance to match the repository, as reported above.",
             "Power remains unmeasured. The two pending proof items are a supported-device "
             "QNN APK run and a runtime page size of 16384 bytes.",
         ]

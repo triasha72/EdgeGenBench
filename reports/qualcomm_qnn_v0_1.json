@@ -1,11 +1,12 @@
 {
   "schema_version": "0.2",
-  "experiment": "EdgeGenBench Qualcomm QNN Snapdragon 8 Elite deployment",
+  "experiment": "EdgeGenBench current-model Qualcomm QNN deployment",
   "source_model": {
     "path": "artifacts/neural_onnx/neural_surrogate.onnx",
-    "sha256": "40f588b329b98fdaa38a7eda202fc89573fce5e91a4193f0a0a93b3142c0382f",
+    "sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
     "input_name": "features",
     "input_width": 10,
+    "output_name": "predictions",
     "output_width": 6,
     "source_precision": "float32"
   },
@@ -14,129 +15,37 @@
     "device_os": "15",
     "chipset": "qualcomm-snapdragon-8-elite",
     "chipset_alias": "sm8750",
-    "soc_model": "69",
     "backend": "HTP",
     "hexagon": "v79",
     "qairt_version": "2.45.0.260326154327"
-  },
-  "batch_specific_baseline": {
-    "1": {
-      "batch_size": 1,
-      "compile_job_id": "j5793jj9g",
-      "profile_job_id": "jp2en736p",
-      "target_model_id": "mnz66wwxm",
-      "target_model_type": "SourceModelType.QNN_CONTEXT_BINARY",
-      "serialized_model_size_bytes": 53248,
-      "serialized_model_sha256": "fd4dbc74b39607d0126f53f3838737197cc5418c2920786d49e0a01d1d412c00",
-      "compute_units": {
-        "NPU": 9
-      },
-      "estimated_inference_time_us": 32,
-      "estimated_inference_peak_memory_bytes": 123199488,
-      "target_metadata": {
-        "ModelMetadataKey.QNN_CONTEXT_BIN_SOC_MODEL": "69",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_BACKEND": "HTP",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_VTCM": "0",
-        "ModelMetadataKey.QAIRT_SDK_VERSION": "2.45.0.260326154327",
-        "ModelMetadataKey.QNN_SDK_VARIANT": "default",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_OPTIMIZATION_LEVEL": "3",
-        "ModelMetadataKey.QNN_MODEL_GRAPH_NAMES": "graph_x4h9d3zo",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_HEXAGON_VERSION": "v79"
-      }
-    },
-    "32": {
-      "batch_size": 32,
-      "compile_job_id": "j5m8y4xwp",
-      "profile_job_id": "jp36280lp",
-      "target_model_id": "mqvkkk3jn",
-      "target_model_type": "SourceModelType.QNN_CONTEXT_BINARY",
-      "serialized_model_size_bytes": 53248,
-      "serialized_model_sha256": "36de3516ebae290dfc445d20d3db435f48aa2b6c531e052d2671d954319f5b99",
-      "compute_units": {
-        "NPU": 9
-      },
-      "estimated_inference_time_us": 35,
-      "estimated_inference_peak_memory_bytes": 122978304,
-      "target_metadata": {
-        "ModelMetadataKey.QNN_CONTEXT_BIN_SOC_MODEL": "69",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_BACKEND": "HTP",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_VTCM": "0",
-        "ModelMetadataKey.QAIRT_SDK_VERSION": "2.45.0.260326154327",
-        "ModelMetadataKey.QNN_SDK_VARIANT": "default",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_OPTIMIZATION_LEVEL": "3",
-        "ModelMetadataKey.QNN_MODEL_GRAPH_NAMES": "graph_f0fyaikk",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_HEXAGON_VERSION": "v79"
-      }
-    },
-    "256": {
-      "batch_size": 256,
-      "compile_job_id": "jpv7x4kjp",
-      "profile_job_id": "jpey32m15",
-      "target_model_id": "mmxgggjrq",
-      "target_model_type": "SourceModelType.QNN_CONTEXT_BINARY",
-      "serialized_model_size_bytes": 57344,
-      "serialized_model_sha256": "b1e55d5220240f9d7119fdb72fa12c6aeaf079f260f9e452c4fd01d47f284c18",
-      "compute_units": {
-        "NPU": 9
-      },
-      "estimated_inference_time_us": 54,
-      "estimated_inference_peak_memory_bytes": 122892288,
-      "target_metadata": {
-        "ModelMetadataKey.QNN_CONTEXT_BIN_SOC_MODEL": "69",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_BACKEND": "HTP",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_VTCM": "0",
-        "ModelMetadataKey.QAIRT_SDK_VERSION": "2.45.0.260326154327",
-        "ModelMetadataKey.QNN_SDK_VARIANT": "default",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_OPTIMIZATION_LEVEL": "3",
-        "ModelMetadataKey.QNN_MODEL_GRAPH_NAMES": "graph_bqjx81_9",
-        "ModelMetadataKey.QNN_CONTEXT_BIN_HEXAGON_VERSION": "v79"
-      }
-    }
-  },
-  "heldout_batch1_baseline": {
-    "sample_count": 900,
-    "target_model_id": "mnz66wwxm",
-    "inference_job_id": "jg9de8ll5",
-    "device": "Snapdragon 8 Elite QRD",
-    "device_os": "15",
-    "normalized_mae": 0.0004096813499927521,
-    "normalized_rmse": 0.000530485762283206,
-    "normalized_max_abs_error": 0.0037398338317871094,
-    "mean_normalized_drift": 0.0004119437653571367,
-    "max_normalized_drift": 0.0036358777433633804,
-    "allclose_1e3": false,
-    "local_mean_r2": 0.9969550037922089,
-    "remote_mean_r2": 0.9969532494078602,
-    "local_mean_nrmse_std": 0.05043262755109571,
-    "remote_mean_nrmse_std": 0.05044457139336909,
-    "r2_delta": -1.754384348684468e-06,
-    "nrmse_delta": 1.1943842273376415e-05
   },
   "linked_multigraph": {
     "compile_jobs": [
       {
         "batch": 1,
         "graph_name": "edgegenbench_batch1",
-        "compile_job_id": "jgd2l0ne5",
+        "compile_job_id": "jpyxnmd05",
         "compile_status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n"
       },
       {
         "batch": 32,
         "graph_name": "edgegenbench_batch32",
-        "compile_job_id": "j5w4nxw3g",
+        "compile_job_id": "jp0jk610g",
         "compile_status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n"
       },
       {
         "batch": 256,
         "graph_name": "edgegenbench_batch256",
-        "compile_job_id": "jg9de80w5",
+        "compile_job_id": "jp8x813qg",
         "compile_status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n"
       }
     ],
-    "link_job_id": "jp16x3285",
+    "link_job_id": "jgk4d8lvp",
     "link_status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n",
-    "target_model_id": "mnl7771jm",
+    "target_model_id": "mnjjex79n",
     "target_model_type": "SourceModelType.QNN_CONTEXT_BINARY",
+    "serialized_model_size_bytes": 106496,
+    "serialized_model_sha256": "43d7cb889b0dd97d8de3a48557fdc7dceb322e6c7b72fdb91b19e5473f84b0df",
     "target_metadata": {
       "ModelMetadataKey.QNN_CONTEXT_BIN_SOC_MODEL": "69",
       "ModelMetadataKey.QNN_CONTEXT_BIN_BACKEND": "HTP",
@@ -148,8 +57,8 @@
       "ModelMetadataKey.QNN_CONTEXT_BIN_HEXAGON_VERSION": "v79"
     },
     "validation": {
-      "link_job_id": "jp16x3285",
-      "target_model_id": "mnl7771jm",
+      "link_job_id": "jgk4d8lvp",
+      "target_model_id": "mnjjex79n",
       "target_model_type": "SourceModelType.QNN_CONTEXT_BINARY",
       "target_metadata": {
         "ModelMetadataKey.QNN_CONTEXT_BIN_SOC_MODEL": "69",
@@ -175,14 +84,14 @@
           "graph_name": "edgegenbench_batch1",
           "batch_size": 1,
           "sample_count": 900,
-          "profile_job_id": "jp4308d85",
-          "inference_job_id": "jpxx2m63p",
+          "profile_job_id": "j567vw3np",
+          "inference_job_id": "jg9m8d3q5",
           "profile": {
             "batch_size": 1,
             "estimated_inference_time_us": 38.0,
             "estimated_inference_latency_ms": 0.038,
             "estimated_throughput_samples_per_second": 26315.78947368421,
-            "estimated_inference_peak_memory_bytes": 122822656,
+            "estimated_inference_peak_memory_bytes": 122855424,
             "compute_units": {
               "NPU": 9
             }
@@ -191,34 +100,34 @@
           "parity": {
             "sample_count": 900,
             "output_width": 6,
-            "mae": 0.00040968134033459206,
-            "rmse": 0.0005304857849774182,
-            "max_abs_error": 0.0037398338317871094,
-            "mean_normalized_drift": 0.00041194377879442924,
-            "max_normalized_drift": 0.0036358769310459917,
+            "mae": 0.00043518983793479425,
+            "rmse": 0.0005554710568707642,
+            "max_abs_error": 0.0033278465270996094,
+            "mean_normalized_drift": 0.0004384562793800826,
+            "max_normalized_drift": 0.003233889676953719,
             "allclose_rtol_1e3_atol_1e3": false
           },
           "predictive_quality": {
-            "local_mean_r2": 0.9969550037922089,
-            "remote_mean_r2": 0.9969532494078602,
-            "r2_delta": -1.754384348684468e-06,
-            "local_mean_nrmse_std": 0.05043262755109571,
-            "remote_mean_nrmse_std": 0.05044457139336909,
-            "nrmse_delta": 1.1943842273376415e-05
+            "local_mean_r2": 0.9969559893499255,
+            "remote_mean_r2": 0.9969544620647843,
+            "r2_delta": -1.5272851411340937e-06,
+            "local_mean_nrmse_std": 0.05042530552302998,
+            "remote_mean_nrmse_std": 0.050449586683723985,
+            "nrmse_delta": 2.428116069400771e-05
           }
         },
         "edgegenbench_batch32": {
           "graph_name": "edgegenbench_batch32",
           "batch_size": 32,
           "sample_count": 256,
-          "profile_job_id": "jgnk8xmkg",
-          "inference_job_id": "jprwj9205",
+          "profile_job_id": "jpyxnmvr5",
+          "inference_job_id": "jpez2yl7p",
           "profile": {
             "batch_size": 32,
-            "estimated_inference_time_us": 34.0,
-            "estimated_inference_latency_ms": 0.034,
-            "estimated_throughput_samples_per_second": 941176.4705882353,
-            "estimated_inference_peak_memory_bytes": 122888192,
+            "estimated_inference_time_us": 40.0,
+            "estimated_inference_latency_ms": 0.04,
+            "estimated_throughput_samples_per_second": 800000.0,
+            "estimated_inference_peak_memory_bytes": 122880000,
             "compute_units": {
               "NPU": 9
             }
@@ -227,34 +136,34 @@
           "parity": {
             "sample_count": 256,
             "output_width": 6,
-            "mae": 0.00042206487463166315,
-            "rmse": 0.00055137047774592,
-            "max_abs_error": 0.0037398338317871094,
-            "mean_normalized_drift": 0.0004078000437142555,
-            "max_normalized_drift": 0.003222448271801646,
+            "mae": 0.0004328816042592128,
+            "rmse": 0.0005609981854555366,
+            "max_abs_error": 0.0033278465270996094,
+            "mean_normalized_drift": 0.00042132448724577204,
+            "max_normalized_drift": 0.0028659358491131483,
             "allclose_rtol_1e3_atol_1e3": false
           },
           "predictive_quality": {
-            "local_mean_r2": 0.9971241567768717,
-            "remote_mean_r2": 0.9971200615281508,
-            "r2_delta": -4.0952487209144905e-06,
-            "local_mean_nrmse_std": 0.04895350495151681,
-            "remote_mean_nrmse_std": 0.048983762073770726,
-            "nrmse_delta": 3.0257122253914137e-05
+            "local_mean_r2": 0.9971158433783592,
+            "remote_mean_r2": 0.9971139833803742,
+            "r2_delta": -1.8599979850764115e-06,
+            "local_mean_nrmse_std": 0.04900140374890117,
+            "remote_mean_nrmse_std": 0.04902444807450163,
+            "nrmse_delta": 2.30443256004631e-05
           }
         },
         "edgegenbench_batch256": {
           "graph_name": "edgegenbench_batch256",
           "batch_size": 256,
           "sample_count": 256,
-          "profile_job_id": "jp2enj9rp",
-          "inference_job_id": "jpym0nj8p",
+          "profile_job_id": "jglx7lllg",
+          "inference_job_id": "jgk4d82op",
           "profile": {
             "batch_size": 256,
-            "estimated_inference_time_us": 57.0,
-            "estimated_inference_latency_ms": 0.057,
-            "estimated_throughput_samples_per_second": 4491228.070175438,
-            "estimated_inference_peak_memory_bytes": 123211776,
+            "estimated_inference_time_us": 47.0,
+            "estimated_inference_latency_ms": 0.047,
+            "estimated_throughput_samples_per_second": 5446808.510638298,
+            "estimated_inference_peak_memory_bytes": 122896384,
             "compute_units": {
               "NPU": 9
             }
@@ -263,37 +172,24 @@
           "parity": {
             "sample_count": 256,
             "output_width": 6,
-            "mae": 0.00042206487463166315,
-            "rmse": 0.00055137047774592,
-            "max_abs_error": 0.0037398338317871094,
-            "mean_normalized_drift": 0.0004078000437142555,
-            "max_normalized_drift": 0.003222448271801646,
+            "mae": 0.0004328816042592128,
+            "rmse": 0.0005609981854555366,
+            "max_abs_error": 0.0033278465270996094,
+            "mean_normalized_drift": 0.00042132448724577204,
+            "max_normalized_drift": 0.0028659358491131483,
             "allclose_rtol_1e3_atol_1e3": false
           },
           "predictive_quality": {
-            "local_mean_r2": 0.9971241567768717,
-            "remote_mean_r2": 0.9971200615281508,
-            "r2_delta": -4.0952487209144905e-06,
-            "local_mean_nrmse_std": 0.04895350495151681,
-            "remote_mean_nrmse_std": 0.048983762073770726,
-            "nrmse_delta": 3.0257122253914137e-05
+            "local_mean_r2": 0.9971158433783592,
+            "remote_mean_r2": 0.9971139833803742,
+            "r2_delta": -1.8599979850764115e-06,
+            "local_mean_nrmse_std": 0.04900140374890117,
+            "remote_mean_nrmse_std": 0.04902444807450163,
+            "nrmse_delta": 2.30443256004631e-05
           }
         }
       }
     }
   },
-  "measurement_semantics": {
-    "latency": "Qualcomm AI Hub profile estimated model inference time",
-    "throughput": "Derived from configured batch size and AI Hub estimated inference time",
-    "runtime_memory": "Qualcomm AI Hub estimated inference peak memory",
-    "serialized_model_size": "Downloaded QNN Context Binary byte size",
-    "allclose": "Diagnostic only; predictive quality and normalized drift are reported separately"
-  },
-  "claim_boundaries": [
-    "Results apply to the named Snapdragon 8 Elite QRD configuration.",
-    "AI Hub profile latency is not end-to-end Android application latency.",
-    "Derived throughput is based on model-profile latency and is not an end-to-end system throughput measurement.",
-    "CPU, CoreML, and Snapdragon timings are not treated as same-hardware comparisons.",
-    "The QNN baseline uses float32 external I/O with HTP FP16-relaxed execution."
-  ]
+  "claim_boundary": "Physical Qualcomm AI Hub QNN HTP model measurements; not Android APK end-to-end latency and not a calibrated power measurement."
 }

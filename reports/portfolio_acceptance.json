@@ -13,56 +13,56 @@
       "claim": "Reference JNI/application measurements; not QNN."
     },
     "qualcomm_ai_hub_qnn": {
-      "status": "tracked_ai_hub_report_model_provenance_mismatch",
+      "status": "validated_ai_hub_physical_qnn",
       "device": "Snapdragon 8 Elite QRD",
       "backend": "QNN HTP",
       "qairt_version": "2.45.0.260326154327",
-      "context_model_id": "mnl7771jm",
-      "link_job_id": "jp16x3285",
+      "context_model_id": "mnjjex79n",
+      "link_job_id": "jgk4d8lvp",
       "graphs": [
         {
           "graph": "edgegenbench_batch1",
           "batch_size": 1,
           "latency_ms": 0.038,
           "throughput_samples_per_second": 26315.78947368421,
-          "peak_memory_bytes": 122822656,
+          "peak_memory_bytes": 122855424,
           "compute_units": {
             "NPU": 9
           },
-          "max_normalized_drift": 0.0036358769310459917,
-          "profile_job_id": "jp4308d85",
-          "inference_job_id": "jpxx2m63p"
+          "max_normalized_drift": 0.003233889676953719,
+          "profile_job_id": "j567vw3np",
+          "inference_job_id": "jg9m8d3q5"
         },
         {
           "graph": "edgegenbench_batch32",
           "batch_size": 32,
-          "latency_ms": 0.034,
-          "throughput_samples_per_second": 941176.4705882353,
-          "peak_memory_bytes": 122888192,
+          "latency_ms": 0.04,
+          "throughput_samples_per_second": 800000.0,
+          "peak_memory_bytes": 122880000,
           "compute_units": {
             "NPU": 9
           },
-          "max_normalized_drift": 0.003222448271801646,
-          "profile_job_id": "jgnk8xmkg",
-          "inference_job_id": "jprwj9205"
+          "max_normalized_drift": 0.0028659358491131483,
+          "profile_job_id": "jpyxnmvr5",
+          "inference_job_id": "jpez2yl7p"
         },
         {
           "graph": "edgegenbench_batch256",
           "batch_size": 256,
-          "latency_ms": 0.057,
-          "throughput_samples_per_second": 4491228.070175438,
-          "peak_memory_bytes": 123211776,
+          "latency_ms": 0.047,
+          "throughput_samples_per_second": 5446808.510638298,
+          "peak_memory_bytes": 122896384,
           "compute_units": {
             "NPU": 9
           },
-          "max_normalized_drift": 0.003222448271801646,
-          "profile_job_id": "jp2enj9rp",
-          "inference_job_id": "jpym0nj8p"
+          "max_normalized_drift": 0.0028659358491131483,
+          "profile_job_id": "jglx7lllg",
+          "inference_job_id": "jgk4d82op"
         }
       ],
-      "reported_source_model_sha256": "40f588b329b98fdaa38a7eda202fc89573fce5e91a4193f0a0a93b3142c0382f",
+      "reported_source_model_sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
       "current_source_model_sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
-      "source_model_matches_repository": false,
+      "source_model_matches_repository": true,
       "claim_boundary": "Physical AI Hub model profiling; not Android APK end-to-end latency."
     },
     "android_qnn_apk": {
