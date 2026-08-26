@@ -8,18 +8,20 @@
 #include <numeric>
 #include <sstream>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 #include "edgegenbench/runtime.hpp"
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
-                                                       jint warmup, jint runs) {
+namespace {
+jstring run_benchmark(JNIEnv* env, edgegenbench::Config config, jint warmup, jint runs) {
   try {
     if (warmup < 0 || runs <= 0) throw edgegenbench::RuntimeError("invalid run counts");
-    edgegenbench::Config config;
     auto session = edgegenbench::create_session(config);
-    const std::vector<float> raw{0.17F, 0.28F, 0.41F, 0.53F, 0.68F, 0.79F, 0.83F, 0.97F};
+    const std::vector<float> raw = config.backend == "qnn"
+        ? std::vector<float>{0.17F, 0.28F, 0.41F, 0.53F, 0.68F,
+                             0.79F, 0.83F, 0.97F, 0.32F, 0.64F}
+        : std::vector<float>{0.17F, 0.28F, 0.41F, 0.53F, 0.68F, 0.79F, 0.83F, 0.97F};
     const std::vector<float> mean(raw.size(), 0.5F), scale(raw.size(), 0.25F);
     constexpr std::size_t preprocess_elements = 262144;
     std::vector<float> preprocess_raw(preprocess_elements);
@@ -38,8 +40,14 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
           preprocess_max_abs_drift,
           static_cast<double>(std::fabs(baseline_tensor.data[i] - fused_tensor.data[i])));
     }
-    const auto baseline_output = session->run(edgegenbench::preprocess_baseline(raw, mean, scale));
-    const auto fused_output = session->run(edgegenbench::preprocess_fused(raw, mean, scale));
+    auto prepare_model_input = [&](bool fused) {
+      auto tensor = fused ? edgegenbench::preprocess_fused(raw, mean, scale)
+                          : edgegenbench::preprocess_baseline(raw, mean, scale);
+      if (config.backend == "qnn") tensor.shape = {1, static_cast<std::int64_t>(raw.size())};
+      return tensor;
+    };
+    const auto baseline_output = session->run(prepare_model_input(false));
+    const auto fused_output = session->run(prepare_model_input(true));
     double output_max_abs_drift = 0.0;
     for (std::size_t i = 0; i < baseline_output.data.size(); ++i) {
       output_max_abs_drift = std::max(
@@ -73,7 +81,7 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
     const double preprocess_speedup = fused_preprocess_mean_ms > 0.0
         ? baseline_preprocess_mean_ms / fused_preprocess_mean_ms : 0.0;
 
-    auto one_run = [&] { return session->run(edgegenbench::preprocess_fused(raw, mean, scale)); };
+    auto one_run = [&] { return session->run(prepare_model_input(true)); };
     const auto cold_start = std::chrono::steady_clock::now();
     auto result = one_run();
     const double cold_ms = std::chrono::duration<double, std::milli>(
@@ -89,9 +97,10 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
     std::sort(samples.begin(), samples.end());
     const double average = std::accumulate(samples.begin(), samples.end(), 0.0) / samples.size();
     const auto p95 = samples[static_cast<std::size_t>((samples.size() - 1) * 0.95)];
+    const char* backend_label = config.backend == "qnn" ? "QNNExecutionProvider" : "reference";
     std::ostringstream display_report;
     display_report << std::fixed << std::setprecision(6)
-           << "backend=reference (NOT QNN)\nCPU fallback=false (reference backend)\n"
+           << "backend=" << backend_label << "\nCPU fallback=false\n"
            << "cold_ms=" << cold_ms << "\nwarm_mean_ms=" << average
            << "\nwarm_p95_ms=" << p95 << "\nruns=" << runs
            << "\nbaseline_preprocess_mean_ms=" << baseline_preprocess_mean_ms
@@ -101,11 +110,12 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
            << "\npreprocess_max_abs_drift=" << preprocess_max_abs_drift
            << "\noutput_max_abs_drift=" << output_max_abs_drift
            << "\noutput=" << result.data.at(0)
-           << "\npower=not measured";
+           << "\npower=not measured\nplacement=" << session->placement_report();
     __android_log_print(ANDROID_LOG_INFO, "EdgeGenBench", "%s", display_report.str().c_str());
     std::ostringstream json;
     json << std::fixed << std::setprecision(9)
-         << "{\"schema_version\":1,\"backend\":\"reference\",\"cpu_fallback\":false"
+         << "{\"schema_version\":1,\"backend\":\"" << backend_label
+         << "\",\"cpu_fallback\":false"
          << ",\"cold_ms\":" << cold_ms
          << ",\"warm_mean_ms\":" << average
          << ",\"warm_p95_ms\":" << p95
@@ -126,4 +136,36 @@ Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
     env->ThrowNew(cls, error.what());
     return nullptr;
   }
+}
+}  // namespace
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_edgegenbench_MainActivity_runNativeBenchmark(JNIEnv* env, jobject,
+                                                       jint warmup, jint runs) {
+  return run_benchmark(env, edgegenbench::Config{}, warmup, runs);
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_edgegenbench_MainActivity_runNativeQnnBenchmark(
+    JNIEnv* env, jobject, jstring model_path, jstring context_path,
+    jstring profile_path, jint warmup, jint runs) {
+#ifdef EDGEBENCH_ENABLE_ORT
+  const char* model = env->GetStringUTFChars(model_path, nullptr);
+  const char* context = env->GetStringUTFChars(context_path, nullptr);
+  const char* profile = env->GetStringUTFChars(profile_path, nullptr);
+  edgegenbench::Config config;
+  config.backend = "qnn";
+  config.model_path = model;
+  config.qnn_context_path = context;
+  config.qnn_profiling_path = profile;
+  config.disable_cpu_fallback = true;
+  env->ReleaseStringUTFChars(model_path, model);
+  env->ReleaseStringUTFChars(context_path, context);
+  env->ReleaseStringUTFChars(profile_path, profile);
+  return run_benchmark(env, std::move(config), warmup, runs);
+#else
+  jclass cls = env->FindClass("java/lang/IllegalStateException");
+  env->ThrowNew(cls, "QNN runtime was not compiled into this APK");
+  return nullptr;
+#endif
 }

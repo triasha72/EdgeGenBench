@@ -59,16 +59,21 @@ python ../scripts/verify_android_qnn_bundle.py "$QNN_ANDROID_ROOT" \
 
 ./gradlew assembleDebug \
   -PedgegenbenchEnableQnn=true \
-  -PedgegenbenchQnnRoot="$QNN_ANDROID_ROOT"
+  -PedgegenbenchQnnRoot="$QNN_ANDROID_ROOT" \
+  -PedgegenbenchQnnModel="$(pwd)/../artifacts/neural_int8/neural_surrogate_int8.onnx"
 ```
 
 The Gradle switch enables the native ONNX Runtime implementation, passes the
-pinned root into CMake, packages its shared libraries, and removes the x86_64
-ABI because the supplied QNN runtime is arm64 device software. A missing root
-fails during Gradle configuration. The default command remains the reference
-build used by CI.
+pinned root into CMake, packages its shared libraries and exact model as an app
+asset, and removes the x86_64 ABI because the supplied QNN runtime is arm64
+device software. Missing dependency/model paths fail during Gradle
+configuration. The default command remains the reference build used by CI.
 
-This build switch proves dependency and linker integration only. Until the JNI
-entry point is switched to the QNN session and its physical-device evidence
-passes the validator, the UI continues to identify and run the reference
-backend.
+In a QNN-enabled APK, Kotlin copies the pinned model into private app storage
+and calls a dedicated JNI entry point. JNI creates only a QNN session, keeps
+`session.disable_cpu_ep_fallback=1`, enables context generation and detailed
+profiling, and returns `QNNExecutionProvider` in the result contract. Reference
+and QNN runs cannot be mixed in one app evidence export. A successful run is
+still only candidate QNN evidence until the retained placement log proves zero
+CPU/unassigned nodes and `scripts/validate_qnn_evidence.py` accepts the full
+physical-device bundle.

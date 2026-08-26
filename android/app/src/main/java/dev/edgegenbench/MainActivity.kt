@@ -17,6 +17,13 @@ import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     private external fun runNativeBenchmark(warmup: Int, runs: Int): String
+    private external fun runNativeQnnBenchmark(
+        modelPath: String,
+        contextPath: String,
+        profilePath: String,
+        warmup: Int,
+        runs: Int,
+    ): String
 
     companion object {
         private const val TAG = "EdgeGenBench"
@@ -27,7 +34,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "MainActivity.onCreate: rendering high-contrast benchmark UI")
         val output = TextView(this).apply {
-            text = "Reference backend only\nTap Run to measure JNI + preprocessing + inference."
+            text = if (BuildConfig.QNN_COMPILED) {
+                "QNN build ready\nTap Run to create a QNN-only session with CPU fallback disabled."
+            } else {
+                "Reference backend only\nTap Run to measure JNI + preprocessing + inference."
+            }
             setTextColor(Color.rgb(20, 24, 31))
             textSize = 18f
             setTextIsSelectable(true)
@@ -77,7 +88,21 @@ class MainActivity : AppCompatActivity() {
             run.isEnabled = false
             output.text = "Running…"
             thread {
-                val result = try { BenchmarkResult.parse(runNativeBenchmark(10, 100)) }
+                val result = try {
+                    val json = if (BuildConfig.QNN_COMPILED) {
+                        val model = copyAssetToFiles(BuildConfig.QNN_MODEL_ASSET)
+                        runNativeQnnBenchmark(
+                            model.absolutePath,
+                            filesDir.resolve("edgegenbench-qnn-context.onnx").absolutePath,
+                            filesDir.resolve("edgegenbench-qnn-profile.json").absolutePath,
+                            10,
+                            100,
+                        )
+                    } else {
+                        runNativeBenchmark(10, 100)
+                    }
+                    BenchmarkResult.parse(json)
+                }
                 catch (error: Throwable) {
                     Log.e(TAG, "Benchmark failed", error)
                     null
@@ -97,8 +122,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         export.setOnClickListener {
-            val results = store.history()
-            if (results.isEmpty()) return@setOnClickListener
+            val latest = store.latest() ?: return@setOnClickListener
+            val results = store.history().filter { it.backend == latest.backend }
             val evidence = EvidenceBundle.build(
                 EvidenceContext(
                     appVersionName = BuildConfig.VERSION_NAME,
@@ -122,5 +147,10 @@ class MainActivity : AppCompatActivity() {
             Log.i(TAG, "MainActivity.onCreate: auto_run requested")
             run.performClick()
         }
+    }
+
+    private fun copyAssetToFiles(name: String) = filesDir.resolve(name).also { target ->
+        require(name.isNotBlank()) { "QNN model asset is not configured" }
+        assets.open(name).use { input -> target.outputStream().use(input::copyTo) }
     }
 }

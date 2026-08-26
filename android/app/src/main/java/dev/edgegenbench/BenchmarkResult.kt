@@ -22,8 +22,8 @@ data class BenchmarkResult(
     val capturedAtEpochMs: Long,
 ) {
     fun toDisplayText(): String = buildString {
-        appendLine("backend=$backend (NOT QNN)")
-        appendLine("CPU fallback=$cpuFallback (reference backend)")
+        appendLine(if (backend == "reference") "backend=reference (NOT QNN)" else "backend=$backend")
+        appendLine("CPU fallback=$cpuFallback")
         appendLine("cold_ms=${coldMs.format(6)}")
         appendLine("warm_mean_ms=${warmMeanMs.format(6)}")
         appendLine("warm_p95_ms=${warmP95Ms.format(6)}")
@@ -82,7 +82,9 @@ data class BenchmarkResult(
                 power = value.getString("power"),
                 capturedAtEpochMs = value.optLong("captured_at_epoch_ms", System.currentTimeMillis()),
             )
-            require(result.backend == "reference") { "Unexpected backend: ${result.backend}" }
+            require(result.backend in setOf("reference", "QNNExecutionProvider")) {
+                "Unexpected backend: ${result.backend}"
+            }
             require(!result.cpuFallback) { "CPU fallback must remain disabled" }
             require(result.runs > 0 && result.preprocessElements > 0) { "Invalid benchmark counts" }
             require(result.runtimePageSizeBytes >= 0) { "Invalid runtime page size" }

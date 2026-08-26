@@ -9,9 +9,13 @@ val edgegenbenchQnnEnabled = providers.gradleProperty("edgegenbenchEnableQnn")
     .orElse(false)
     .get()
 val edgegenbenchQnnRoot = providers.gradleProperty("edgegenbenchQnnRoot").orNull
+val edgegenbenchQnnModel = providers.gradleProperty("edgegenbenchQnnModel").orNull
 
-if (edgegenbenchQnnEnabled && edgegenbenchQnnRoot.isNullOrBlank()) {
-    error("-PedgegenbenchQnnRoot=/absolute/path is required when QNN is enabled")
+if (edgegenbenchQnnEnabled && (edgegenbenchQnnRoot.isNullOrBlank() || edgegenbenchQnnModel.isNullOrBlank())) {
+    error("-PedgegenbenchQnnRoot and -PedgegenbenchQnnModel absolute paths are required when QNN is enabled")
+}
+if (edgegenbenchQnnEnabled && !file(edgegenbenchQnnModel!!).isFile) {
+    error("QNN model does not exist: $edgegenbenchQnnModel")
 }
 
 android {
@@ -26,6 +30,7 @@ android {
         versionName = "0.1.7"
         buildConfigField("String", "GIT_REVISION", "\"$edgegenbenchGitRevision\"")
         buildConfigField("boolean", "QNN_COMPILED", edgegenbenchQnnEnabled.toString())
+        buildConfigField("String", "QNN_MODEL_ASSET", "\"${edgegenbenchQnnModel?.let(::file)?.name ?: ""}\"")
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
@@ -49,6 +54,7 @@ android {
     packaging { jniLibs { useLegacyPackaging = false } }
     if (edgegenbenchQnnEnabled) {
         sourceSets.getByName("main").jniLibs.srcDir("$edgegenbenchQnnRoot/lib")
+        sourceSets.getByName("main").assets.srcDir(file(edgegenbenchQnnModel!!).parentFile)
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
