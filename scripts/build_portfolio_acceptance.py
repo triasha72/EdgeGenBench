@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,25 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _repository_sha256(repository_root: Path, source_path: Path) -> tuple[str | None, str]:
+    """Hash the committed artifact, falling back to the worktree outside Git."""
+    try:
+        relative_path = source_path.relative_to(repository_root).as_posix()
+    except ValueError as exc:
+        raise ValueError("source model must be inside the repository") from exc
+
+    result = subprocess.run(
+        ["git", "-C", str(repository_root), "show", f"HEAD:{relative_path}"],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode == 0:
+        return hashlib.sha256(result.stdout).hexdigest(), "committed_git_blob"
+    if source_path.is_file():
+        return _sha256(source_path), "worktree_file"
+    return None, "missing"
+
+
 def validate_ai_hub_qnn(report_path: Path, repository_root: Path) -> dict[str, Any]:
     report = _load_json(report_path)
     if report.get("schema_version") != "0.2":
@@ -39,7 +59,7 @@ def validate_ai_hub_qnn(report_path: Path, repository_root: Path) -> dict[str, A
     ):
         raise ValueError("incomplete Qualcomm AI Hub identity")
     source_path = repository_root / str(source.get("path"))
-    current_source_sha256 = _sha256(source_path) if source_path.is_file() else None
+    current_source_sha256, source_hash_origin = _repository_sha256(repository_root, source_path)
     source_model_matches = current_source_sha256 == source.get("sha256")
     if hardware.get("backend") != "HTP" or not hardware.get("qairt_version"):
         raise ValueError("Qualcomm report must identify the HTP backend and QAIRT version")
@@ -95,6 +115,7 @@ def validate_ai_hub_qnn(report_path: Path, repository_root: Path) -> dict[str, A
         "graphs": sorted(graph_summaries, key=lambda value: value["batch_size"]),
         "reported_source_model_sha256": source.get("sha256"),
         "current_source_model_sha256": current_source_sha256,
+        "source_model_hash_origin": source_hash_origin,
         "source_model_matches_repository": source_model_matches,
         "claim_boundary": "Physical AI Hub model profiling; not Android APK end-to-end latency.",
     }

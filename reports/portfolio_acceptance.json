@@ -62,6 +62,7 @@
       ],
       "reported_source_model_sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
       "current_source_model_sha256": "191927e05b5f82a539f0ad35c78dafe7f969cb4e57e9c76556cb9f35053e658e",
+      "source_model_hash_origin": "committed_git_blob",
       "source_model_matches_repository": true,
       "claim_boundary": "Physical AI Hub model profiling; not Android APK end-to-end latency."
     },

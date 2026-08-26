@@ -18,6 +18,7 @@ def test_validates_tracked_ai_hub_qnn_evidence() -> None:
     assert result["status"] == "validated_ai_hub_physical_qnn"
     assert result["backend"] == "QNN HTP"
     assert result["source_model_matches_repository"] is True
+    assert result["source_model_hash_origin"] == "committed_git_blob"
     assert len(cast(list[object], result["graphs"])) == 3
 
 
