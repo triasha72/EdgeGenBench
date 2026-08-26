@@ -19,6 +19,8 @@ def test_validates_tracked_ai_hub_qnn_evidence() -> None:
     assert result["backend"] == "QNN HTP"
     assert result["source_model_matches_repository"] is True
     assert result["source_model_hash_origin"] == "committed_git_blob"
+    assert result["context_matches_repository"] is True
+    assert result["context_hash_origin"] == "committed_git_blob"
     assert len(cast(list[object], result["graphs"])) == 3
 
 
@@ -31,4 +33,14 @@ def test_rejects_cpu_compute_unit_in_qnn_report(tmp_path: Path) -> None:
     path = tmp_path / "qnn.json"
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="exclusive NPU"):
+        validate_ai_hub_qnn(path, root)
+
+
+def test_rejects_mismatched_qnn_context_hash(tmp_path: Path) -> None:
+    root = Path(__file__).parents[1]
+    report = json.loads((root / "reports/qualcomm_qnn_v0_1.json").read_text())
+    report["linked_multigraph"]["serialized_model_sha256"] = "0" * 64
+    path = tmp_path / "qnn.json"
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="context binary"):
         validate_ai_hub_qnn(path, root)

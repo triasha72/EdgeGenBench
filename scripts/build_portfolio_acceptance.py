@@ -65,6 +65,14 @@ def validate_ai_hub_qnn(report_path: Path, repository_root: Path) -> dict[str, A
         raise ValueError("Qualcomm report must identify the HTP backend and QAIRT version")
     if "SUCCESS" not in str(linked.get("link_status")):
         raise ValueError("linked QNN context job did not succeed")
+    context_path = repository_root / str(linked.get("serialized_model_path"))
+    context_sha256, context_hash_origin = _repository_sha256(repository_root, context_path)
+    context_size = context_path.stat().st_size if context_path.is_file() else None
+    context_matches = context_sha256 == linked.get(
+        "serialized_model_sha256"
+    ) and context_size == linked.get("serialized_model_size_bytes")
+    if not context_matches:
+        raise ValueError("tracked QNN context binary does not match its reported hash and size")
     validation = linked.get("validation")
     if not isinstance(validation, dict) or validation.get("device") != hardware.get("device"):
         raise ValueError("linked QNN validation device does not match the report")
@@ -111,6 +119,11 @@ def validate_ai_hub_qnn(report_path: Path, repository_root: Path) -> dict[str, A
         "backend": "QNN HTP",
         "qairt_version": hardware["qairt_version"],
         "context_model_id": linked["target_model_id"],
+        "context_path": linked["serialized_model_path"],
+        "context_sha256": context_sha256,
+        "context_size_bytes": context_size,
+        "context_hash_origin": context_hash_origin,
+        "context_matches_repository": context_matches,
         "link_job_id": linked["link_job_id"],
         "graphs": sorted(graph_summaries, key=lambda value: value["batch_size"]),
         "reported_source_model_sha256": source.get("sha256"),
@@ -176,6 +189,8 @@ def build_portfolio_acceptance(
             f"Device: **{qnn['device']}**; backend: **{qnn['backend']}**; "
             f"QAIRT: `{qnn['qairt_version']}`.",
             f"Source-model provenance match: **{qnn['source_model_matches_repository']}**.",
+            f"Tracked QNN context provenance match: **{qnn['context_matches_repository']}** "
+            f"(`{qnn['context_path']}`, `{qnn['context_sha256']}`).",
             "",
             "| Batch | AI Hub latency (ms) | Throughput (samples/s) | "
             "Peak memory (bytes) | Placement | Max normalized drift |",

@@ -13,6 +13,7 @@
 
 Device: **Snapdragon 8 Elite QRD**; backend: **QNN HTP**; QAIRT: `2.45.0.260326154327`.
 Source-model provenance match: **True**.
+Tracked QNN context provenance match: **True** (`artifacts/qualcomm_ai_hub/current_model/edgegenbench_multigraph.bin`, `43d7cb889b0dd97d8de3a48557fdc7dceb322e6c7b72fdb91b19e5473f84b0df`).
 
 | Batch | AI Hub latency (ms) | Throughput (samples/s) | Peak memory (bytes) | Placement | Max normalized drift |
 |---:|---:|---:|---:|---|---:|

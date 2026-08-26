@@ -319,6 +319,7 @@ def main() -> None:
             "link_status": str(link_job.get_status()),
             "target_model_id": target_model.model_id,
             "target_model_type": str(target_model.model_type),
+            "serialized_model_path": str(CONTEXT_PATH),
             "serialized_model_size_bytes": CONTEXT_PATH.stat().st_size,
             "serialized_model_sha256": _sha256(CONTEXT_PATH),
             "target_metadata": metadata,

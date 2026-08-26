@@ -44,6 +44,7 @@
     "link_status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n",
     "target_model_id": "mnjjex79n",
     "target_model_type": "SourceModelType.QNN_CONTEXT_BINARY",
+    "serialized_model_path": "artifacts/qualcomm_ai_hub/current_model/edgegenbench_multigraph.bin",
     "serialized_model_size_bytes": 106496,
     "serialized_model_sha256": "43d7cb889b0dd97d8de3a48557fdc7dceb322e6c7b72fdb91b19e5473f84b0df",
     "target_metadata": {
