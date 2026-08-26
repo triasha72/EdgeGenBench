@@ -165,6 +165,11 @@ Cross-provider timings should not be interpreted as a direct hardware ranking.
 
 ## Qualcomm QNN / Snapdragon deployment
 
+The consolidated [portfolio acceptance matrix](reports/portfolio_acceptance.md)
+separates validated CI/device lanes from evidence still pending. It also checks
+that the model hash in the Qualcomm report matches the current ONNX artifact.
+The current-model AI Hub rerun restores that provenance chain.
+
 EdgeGenBench now includes a validated Qualcomm QNN deployment path for the
 compact neural surrogate.
 
@@ -177,13 +182,13 @@ profiled layers were placed on the NPU for every validated graph.
 
 | Batch | AI Hub profile latency | Peak memory | Compute units |
 |---:|---:|---:|---|
-| 1 | 38 us | 122,937,344 B | NPU: 9 |
-| 32 | 34 us | 122,888,192 B | NPU: 9 |
-| 256 | 57 us | 123,211,776 B | NPU: 9 |
+| 1 | 38 us | 122,855,424 B | NPU: 9 |
+| 32 | 40 us | 122,880,000 B | NPU: 9 |
+| 256 | 47 us | 122,896,384 B | NPU: 9 |
 
 On all 900 held-out rows, the linked batch-1 QNN deployment retained mean R2
-of 0.996953 versus 0.996955 for the local FP32 ONNX reference. Maximum
-normalized deployment drift was 0.003636.
+of 0.996954 versus 0.996956 for the local FP32 ONNX reference. Maximum
+normalized deployment drift was 0.003234.
 
 These values are device-specific AI Hub model-profile measurements. They are
 not presented as end-to-end Android application latency or as a same-hardware
@@ -192,6 +197,13 @@ comparison with the Mac CPU/CoreML experiments.
 Complete provenance and linked-graph validation are stored in:
 
 `reports/qualcomm_qnn_v0_1.json`
+
+The authenticated current-model run is reproducible with:
+
+```bash
+PYTHONPATH=src python scripts/rerun_qualcomm_qnn_current_model.py
+python scripts/build_portfolio_acceptance.py
+```
 
 ### Qualcomm-native INT8 decision
 
