@@ -36,3 +36,39 @@ The checked-in build uses the deterministic reference backend and says so in
 the UI and logs. QNN results require wiring a pinned QNN-enabled ONNX Runtime
 package, following `../docs/qnn_device_runbook.md`, and retaining placement
 evidence. No certificate or signing-key collection is needed for a debug APK.
+
+## Opt-in QNN dependency build
+
+Keep proprietary/prebuilt runtime files outside Git. Prepare one absolute
+directory with this minimum layout:
+
+```text
+qnn-android-root/
+├── include/onnxruntime_cxx_api.h
+└── lib/arm64-v8a/
+    ├── libonnxruntime.so
+    ├── libQnnHtp.so
+    └── libQnnSystem.so
+```
+
+First validate and checksum that bundle, then compile the arm64-only APK:
+
+```bash
+python ../scripts/verify_android_qnn_bundle.py "$QNN_ANDROID_ROOT" \
+  --output ../reports/device/qnn-android-dependencies.json
+
+./gradlew assembleDebug \
+  -PedgegenbenchEnableQnn=true \
+  -PedgegenbenchQnnRoot="$QNN_ANDROID_ROOT"
+```
+
+The Gradle switch enables the native ONNX Runtime implementation, passes the
+pinned root into CMake, packages its shared libraries, and removes the x86_64
+ABI because the supplied QNN runtime is arm64 device software. A missing root
+fails during Gradle configuration. The default command remains the reference
+build used by CI.
+
+This build switch proves dependency and linker integration only. Until the JNI
+entry point is switched to the QNN session and its physical-device evidence
+passes the validator, the UI continues to identify and run the reference
+backend.

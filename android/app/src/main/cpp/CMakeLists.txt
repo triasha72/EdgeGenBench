@@ -3,6 +3,8 @@ project(edgegenbench_android LANGUAGES CXX)
 
 set(EDGEBENCH_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(EDGEBENCH_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+# EDGEBENCH_ENABLE_ORT and ONNXRUNTIME_ROOT are supplied by Gradle only for an
+# explicit QNN build. The default CI APK remains dependency-free/reference-only.
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../../../../native
                  ${CMAKE_CURRENT_BINARY_DIR}/edgegenbench-native)
 add_library(edgegenbench_jni SHARED jni_bridge.cpp)

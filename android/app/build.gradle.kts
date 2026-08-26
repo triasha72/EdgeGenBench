@@ -4,6 +4,15 @@ plugins {
 }
 
 val edgegenbenchGitRevision = providers.environmentVariable("GITHUB_SHA").orElse("local").get()
+val edgegenbenchQnnEnabled = providers.gradleProperty("edgegenbenchEnableQnn")
+    .map(String::toBooleanStrict)
+    .orElse(false)
+    .get()
+val edgegenbenchQnnRoot = providers.gradleProperty("edgegenbenchQnnRoot").orNull
+
+if (edgegenbenchQnnEnabled && edgegenbenchQnnRoot.isNullOrBlank()) {
+    error("-PedgegenbenchQnnRoot=/absolute/path is required when QNN is enabled")
+}
 
 android {
     namespace = "dev.edgegenbench"
@@ -16,13 +25,21 @@ android {
         versionCode = 8
         versionName = "0.1.7"
         buildConfigField("String", "GIT_REVISION", "\"$edgegenbenchGitRevision\"")
+        buildConfigField("boolean", "QNN_COMPILED", edgegenbenchQnnEnabled.toString())
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+                if (edgegenbenchQnnEnabled) {
+                    arguments += "-DEDGEBENCH_ENABLE_ORT=ON"
+                    arguments += "-DONNXRUNTIME_ROOT=$edgegenbenchQnnRoot"
+                }
             }
         }
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        ndk {
+            abiFilters += if (edgegenbenchQnnEnabled) listOf("arm64-v8a")
+            else listOf("arm64-v8a", "x86_64")
+        }
     }
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
     buildFeatures {
@@ -30,6 +47,9 @@ android {
         buildConfig = true
     }
     packaging { jniLibs { useLegacyPackaging = false } }
+    if (edgegenbenchQnnEnabled) {
+        sourceSets.getByName("main").jniLibs.srcDir("$edgegenbenchQnnRoot/lib")
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
