@@ -31,7 +31,8 @@ The project combines:
 - mixed-precision INT8/FP32 static-QDQ deployment;
 - quantization calibration and drift analysis;
 - CPU and CoreML execution-provider benchmarking;
-- native iOS 17 SwiftUI inference with an exported Core ML model contract;
+- native iOS 17 SwiftUI/Core ML integration with CI simulator acceptance and a
+  physical-device evidence contract;
 - installable iPhone browser inference with ONNX Runtime Web;
 - repeated latency benchmarking;
 - reproducible testing, type checking, and continuous integration.
@@ -42,8 +43,10 @@ proprietary aircraft-manufacturer data, software, or design information.
 The [browser demo](web/README.md) provides the usable iPhone path without
 Xcode: GitHub Pages serves an installable web app and inference runs locally in
 Safari. The separate [native app](ios/README.md) preserves the Core ML route,
-but physical-device latency and energy remain unclaimed until a signed build is
-measured on an iPhone.
+automates current-model export, builds and tests on an unsigned iOS simulator
+in CI, and exports validation-ready physical-iPhone evidence. Device latency,
+ANE placement, and energy remain unclaimed until their respective evidence is
+captured and validated.
 
 ## Native C++ and Android runtime
 

@@ -83,6 +83,14 @@
       "report": "reports/android_16kb_emulator_reference_v0_1_7.md",
       "claim": "APK/JNI reference path executed on PAGE_SIZE=16384; not physical-device performance."
     },
+    "ios_coreml": {
+      "status": "ci_build_and_simulator_test_configured",
+      "backend": "CoreML",
+      "source_model_sha256": "55d6db9f19f2e361c6066b639920cfd1aad54ea5544b463b205857ebb7ceb657",
+      "preprocessing_sha256": "c53831dd106a26b668d586b4eb83f73a1e43483c52ec8ee36c7ba35c95cdb08e",
+      "physical_device_status": "evidence_pending",
+      "claim": "Core ML export, SwiftUI app, XCTest, and unsigned simulator CI are configured; physical-iPhone latency remains pending a validated device export."
+    },
     "power": {
       "status": "not_measured",
       "claim": "No power-savings claim is made without a named calibrated tool."
