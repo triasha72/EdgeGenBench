@@ -96,6 +96,80 @@ jobs:
           path: build/evidence/android
           if-no-files-found: error
 
+  ios:
+    name: iOS Core ML simulator
+    runs-on: macos-15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Core ML export dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[neural,coreml]"
+
+      - name: Export current model and stage iOS resources
+        run: python scripts/prepare_ios_resources.py
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build unsigned iOS simulator app
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project EdgeGenBenchDemo.xcodeproj \
+            -scheme EdgeGenBenchDemo \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Run XCTest on an available iPhone simulator
+        working-directory: ios
+        run: |
+          DEVICE_ID="$(xcrun simctl list devices available -j | python -c \
+            'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for values in d.values() for x in values if x["name"].startswith("iPhone")))')"
+          xcodebuild \
+            -project EdgeGenBenchDemo.xcodeproj \
+            -scheme EdgeGenBenchDemo \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath DerivedData \
+            -resultBundlePath ../build/ios-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+
+      - name: Package simulator acceptance evidence
+        run: |
+          mkdir -p build/ios-evidence
+          ditto -c -k --sequesterRsrc --keepParent \
+            ios/DerivedData/Build/Products/Debug-iphonesimulator/EdgeGenBenchDemo.app \
+            build/ios-evidence/EdgeGenBench-ios-simulator-app.zip
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/ios-tests.xcresult \
+            build/ios-evidence/ios-tests.xcresult.zip
+          xcodebuild -version > build/ios-evidence/xcode-version.txt
+          shasum -a 256 build/ios-evidence/* > build/ios-evidence/checksums.txt
+
+      - name: Upload iOS simulator evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-coreml-simulator-evidence
+          path: build/ios-evidence
+          if-no-files-found: error
+
   test:
     name: Python 3.12 checks
     runs-on: ubuntu-latest
@@ -150,7 +224,7 @@ jobs:
   release-acceptance:
     name: End-to-end release acceptance
     runs-on: ubuntu-latest
-    needs: [native, android, test]
+    needs: [native, android, ios, test]
 
     steps:
       - name: Check out repository
@@ -174,6 +248,12 @@ jobs:
           name: android-verification-evidence
           path: build/input/android
 
+      - name: Download iOS simulator evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-coreml-simulator-evidence
+          path: build/input/ios
+
       - name: Validate and assemble release evidence
         run: |
           python scripts/build_release_evidence.py \
@@ -181,6 +261,7 @@ jobs:
             --fused build/input/native/fused.json \
             --apk build/input/android/EdgeGenBench-0.1.7-device-evidence-debug.apk \
             --alignment-report build/input/android/16kb-alignment.txt \
+            --ios-simulator-evidence build/input/ios \
             --output-dir build/release-evidence \
             --git-revision "$GITHUB_SHA" \
             --version 0.1.7

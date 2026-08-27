@@ -11,8 +11,30 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.triasha72.EdgeGenBenchDemo
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: 5.0
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         CODE_SIGN_STYLE: Automatic
-
+  EdgeGenBenchDemoTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - EdgeGenBenchDemoTests
+    dependencies:
+      - target: EdgeGenBenchDemo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.triasha72.EdgeGenBenchDemoTests
+        SWIFT_VERSION: 5.0
+schemes:
+  EdgeGenBenchDemo:
+    build:
+      targets:
+        EdgeGenBenchDemo: all
+        EdgeGenBenchDemoTests: [test]
+    test:
+      targets:
+        - EdgeGenBenchDemoTests

@@ -249,3 +249,26 @@ def test_release_bundle_retains_validated_qnn_artifacts(tmp_path: Path) -> None:
     assert manifest["qnn_evidence"]["status"] == "validated_qnn_npu"
     assert (tmp_path / "release/qnn/summary.json").is_file()
     assert (tmp_path / "release/qnn/artifacts/qnn_context.bin").is_file()
+
+
+def test_release_bundle_retains_ios_simulator_acceptance(tmp_path: Path) -> None:
+    ios = tmp_path / "ios-evidence"
+    ios.mkdir()
+    for name in (
+        "EdgeGenBench-ios-simulator-app.zip",
+        "ios-tests.xcresult.zip",
+        "xcode-version.txt",
+        "checksums.txt",
+    ):
+        (ios / name).write_bytes(name.encode())
+    manifest_path = build_release_evidence(
+        *_inputs(tmp_path),
+        tmp_path / "release",
+        git_revision="abc123",
+        version="0.1.8",
+        ios_simulator_evidence=ios,
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["acceptance"]["ios_coreml_simulator_build_and_tests"] is True
+    assert manifest["ios_simulator_evidence"]["status"] == "validated_in_ci"
+    assert (tmp_path / "release/ios-simulator/ios-tests.xcresult.zip").is_file()

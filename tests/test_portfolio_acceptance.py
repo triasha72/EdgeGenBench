@@ -13,6 +13,10 @@ ValidateQnn = Callable[[Path, Path], dict[str, object]]
 validate_ai_hub_qnn = cast(ValidateQnn, FUNCTIONS["validate_ai_hub_qnn"])
 Validate16Kb = Callable[[Path, Path], dict[str, object]]
 validate_android_16kb_runtime = cast(Validate16Kb, FUNCTIONS["validate_android_16kb_runtime"])
+ValidateIOS = Callable[[Path], dict[str, object]]
+validate_ios_coreml_implementation = cast(
+    ValidateIOS, FUNCTIONS["validate_ios_coreml_implementation"]
+)
 
 
 def test_validates_tracked_ai_hub_qnn_evidence() -> None:
@@ -75,3 +79,11 @@ def test_rejects_non_16kb_android_runtime_evidence(tmp_path: Path) -> None:
             evidence,
             root / "reports/android_16kb_emulator_reference_v0_1_7.md",
         )
+
+
+def test_validates_ios_coreml_implementation_contract() -> None:
+    root = Path(__file__).parents[1]
+    result = validate_ios_coreml_implementation(root)
+    assert result["status"] == "ci_build_and_simulator_test_configured"
+    assert result["backend"] == "CoreML"
+    assert result["physical_device_status"] == "evidence_pending"

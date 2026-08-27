@@ -13,6 +13,12 @@ __pycache__/
 
 # Generated data, models, and reports
 artifacts/
+!artifacts/
+artifacts/*
+!artifacts/neural_surrogate/
+artifacts/neural_surrogate/*
+!artifacts/neural_surrogate/model.pt
+!artifacts/neural_surrogate/preprocessing.npz
 /models/
 data/raw/*
 !data/raw/.gitkeep
@@ -29,12 +35,17 @@ reports/*
 *.joblib
 *.pt
 *.pth
+!artifacts/neural_surrogate/model.pt
 
 # Native and Android build outputs
 build/
 android/.gradle/
 android/local.properties
 android/**/build/
+ios/EdgeGenBenchDemo/Resources/
+ios/EdgeGenBenchDemo/.generated-coreml/
+ios/*.xcodeproj/
+ios/DerivedData/
 .idea/
 
 # Local backup files

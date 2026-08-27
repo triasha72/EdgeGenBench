@@ -16,9 +16,11 @@ def test_ios_contract_preserves_preprocessing_and_output_scaling() -> None:
         targets=("a", "b", "c", "d", "e", "f"),
     )
     contract = build_ios_contract(preprocessor)
+    assert contract["schemaVersion"] == "1.1"
     assert contract["inputName"] == "features"
     assert contract["outputName"] == "predictions"
     assert contract["inputDimension"] == 9
     assert contract["outputDimension"] == 6
     assert contract["categories"] == ["battery_electric", "hybrid", "hydrogen"]
     assert contract["targetScale"] == [2.0] * 6
+    assert contract["sourceModelSha256"] is None

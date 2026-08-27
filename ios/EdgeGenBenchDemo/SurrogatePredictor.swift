@@ -1,8 +1,11 @@
 import CoreML
+import CryptoKit
 import Foundation
 
 struct ModelContract: Decodable {
     let schemaVersion: String
+    let sourceModelSha256: String
+    let preprocessingSha256: String
     let inputName: String
     let outputName: String
     let numericFeatures: [String]
@@ -39,13 +42,16 @@ enum SurrogateError: LocalizedError {
 
 final class SurrogatePredictor {
     let contract: ModelContract
+    let contractSHA256: String
     private let model: MLModel
 
     init(bundle: Bundle = .main) throws {
         guard let contractURL = bundle.url(forResource: "ModelContract", withExtension: "json") else {
             throw SurrogateError.missingResource("ModelContract.json")
         }
-        contract = try JSONDecoder().decode(ModelContract.self, from: Data(contentsOf: contractURL))
+        let contractData = try Data(contentsOf: contractURL)
+        contract = try JSONDecoder().decode(ModelContract.self, from: contractData)
+        contractSHA256 = SHA256.hash(data: contractData).map { String(format: "%02x", $0) }.joined()
         guard contract.featureMean.count + contract.categories.count == contract.inputDimension,
               contract.featureScale.count == contract.featureMean.count,
               contract.targets.count == contract.outputDimension,
@@ -56,7 +62,9 @@ final class SurrogatePredictor {
         guard let modelURL = bundle.url(forResource: "NeuralSurrogate", withExtension: "mlmodelc") else {
             throw SurrogateError.missingResource("NeuralSurrogate.mlpackage")
         }
-        model = try MLModel(contentsOf: modelURL)
+        let configuration = MLModelConfiguration()
+        configuration.computeUnits = .all
+        model = try MLModel(contentsOf: modelURL, configuration: configuration)
         guard model.modelDescription.inputDescriptionsByName[contract.inputName] != nil,
               model.modelDescription.outputDescriptionsByName[contract.outputName] != nil else {
             throw SurrogateError.invalidContract("Core ML feature names do not agree")
@@ -86,4 +94,3 @@ final class SurrogatePredictor {
         }
     }
 }
-

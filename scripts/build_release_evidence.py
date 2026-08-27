@@ -311,6 +311,7 @@ def build_release_evidence(
     version: str,
     device_evidence: Path | None = None,
     qnn_evidence: Path | None = None,
+    ios_simulator_evidence: Path | None = None,
 ) -> Path:
     baseline = _load_json(baseline_path)
     fused = _load_json(fused_path)
@@ -393,6 +394,35 @@ def build_release_evidence(
             "claim": "Exclusive QNN placement validated with CPU fallback disabled.",
         }
 
+    ios_status: dict[str, Any] = {
+        "status": "not_supplied",
+        "claim": "No iOS build or physical-iPhone claim is made by this bundle.",
+    }
+    if ios_simulator_evidence is not None:
+        if not ios_simulator_evidence.is_dir():
+            raise ValueError("iOS simulator evidence must be a directory")
+        required_ios = (
+            "EdgeGenBench-ios-simulator-app.zip",
+            "ios-tests.xcresult.zip",
+            "xcode-version.txt",
+            "checksums.txt",
+        )
+        missing_ios = [
+            name for name in required_ios if not (ios_simulator_evidence / name).is_file()
+        ]
+        if missing_ios:
+            raise ValueError(f"iOS simulator evidence is incomplete: {', '.join(missing_ios)}")
+        destination = output_dir / "ios-simulator"
+        shutil.copytree(ios_simulator_evidence, destination, dirs_exist_ok=True)
+        ios_status = {
+            "status": "validated_in_ci",
+            "path": "ios-simulator",
+            "claim": (
+                "Unsigned Core ML simulator app built and XCTest result retained; "
+                "not physical-iPhone latency, ANE placement, or power evidence."
+            ),
+        }
+
     files = []
     for path in sorted(
         p for p in output_dir.rglob("*") if p.is_file() and p.name != "manifest.json"
@@ -415,12 +445,14 @@ def build_release_evidence(
             "native_fused_passed": True,
             "baseline_fused_max_abs_drift": drift,
             "android_16kb_compatible": True,
+            "ios_coreml_simulator_build_and_tests": ios_status["status"] == "validated_in_ci",
             "cpu_fallback_claim": "not applicable to deterministic reference backend",
             "qnn_npu_placement": "not tested in CI",
             "power": "not measured",
         },
         "device_evidence": device_status,
         "qnn_evidence": qnn_status,
+        "ios_simulator_evidence": ios_status,
         "files": files,
     }
     manifest_path = output_dir / "manifest.json"
@@ -439,6 +471,7 @@ def main() -> None:
     parser.add_argument("--version", required=True)
     parser.add_argument("--device-evidence", type=Path)
     parser.add_argument("--qnn-evidence", type=Path)
+    parser.add_argument("--ios-simulator-evidence", type=Path)
     args = parser.parse_args()
     manifest = build_release_evidence(
         args.baseline,
@@ -450,6 +483,7 @@ def main() -> None:
         version=args.version,
         device_evidence=args.device_evidence,
         qnn_evidence=args.qnn_evidence,
+        ios_simulator_evidence=args.ios_simulator_evidence,
     )
     print(f"Release evidence validated: {manifest}")
 

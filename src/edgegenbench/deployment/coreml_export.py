@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,10 +28,25 @@ class CoreMLExportArtifacts:
     output_dim: int
 
 
-def build_ios_contract(preprocessor: NeuralPreprocessor) -> dict[str, Any]:
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def build_ios_contract(
+    preprocessor: NeuralPreprocessor,
+    *,
+    source_model_sha256: str | None = None,
+    preprocessing_sha256: str | None = None,
+) -> dict[str, Any]:
     """Serialize preprocessing and inverse-scaling rules for Swift."""
     return {
-        "schemaVersion": "1.0",
+        "schemaVersion": "1.1",
+        "sourceModelSha256": source_model_sha256,
+        "preprocessingSha256": preprocessing_sha256,
         "inputName": COREML_INPUT_NAME,
         "outputName": COREML_OUTPUT_NAME,
         "numericFeatures": list(NUMERIC_FEATURES),
@@ -82,7 +98,15 @@ def export_neural_surrogate_coreml(
     contract_destination = output_dir / "ModelContract.json"
     converted.save(str(model_destination))
     contract_destination.write_text(
-        json.dumps(build_ios_contract(preprocessor), indent=2) + "\n",
+        json.dumps(
+            build_ios_contract(
+                preprocessor,
+                source_model_sha256=_sha256(model_path),
+                preprocessing_sha256=_sha256(preprocessing_path),
+            ),
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
     )
     return CoreMLExportArtifacts(

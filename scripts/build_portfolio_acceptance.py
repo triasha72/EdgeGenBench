@@ -189,6 +189,39 @@ def validate_android_16kb_runtime(evidence_dir: Path, report_path: Path) -> dict
     }
 
 
+def validate_ios_coreml_implementation(repository_root: Path) -> dict[str, Any]:
+    required = [
+        repository_root / "ios/project.yml",
+        repository_root / "ios/EdgeGenBenchDemo/SurrogatePredictor.swift",
+        repository_root / "ios/EdgeGenBenchDemo/BenchmarkEvidence.swift",
+        repository_root / "ios/EdgeGenBenchDemoTests/BenchmarkStatisticsTests.swift",
+        repository_root / "scripts/prepare_ios_resources.py",
+        repository_root / "scripts/validate_ios_evidence.py",
+        repository_root / "artifacts/neural_surrogate/model.pt",
+        repository_root / "artifacts/neural_surrogate/preprocessing.npz",
+    ]
+    missing = [
+        path.relative_to(repository_root).as_posix() for path in required if not path.is_file()
+    ]
+    if missing:
+        raise ValueError(f"iOS Core ML implementation is incomplete: {', '.join(missing)}")
+    workflow = (repository_root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    for marker in ("iOS Core ML simulator", "prepare_ios_resources.py", "xcodebuild", "test"):
+        if marker not in workflow:
+            raise ValueError(f"iOS CI is missing required marker: {marker}")
+    return {
+        "status": "ci_build_and_simulator_test_configured",
+        "backend": "CoreML",
+        "source_model_sha256": _sha256(required[-2]),
+        "preprocessing_sha256": _sha256(required[-1]),
+        "physical_device_status": "evidence_pending",
+        "claim": (
+            "Core ML export, SwiftUI app, XCTest, and unsigned simulator CI are configured; "
+            "physical-iPhone latency remains pending a validated device export."
+        ),
+    }
+
+
 def build_portfolio_acceptance(
     *, repository_root: Path, qnn_report: Path, output_json: Path, output_markdown: Path
 ) -> dict[str, Any]:
@@ -201,6 +234,7 @@ def build_portfolio_acceptance(
         repository_root / "reports/device/android-16kb-api35-reference-10-runs",
         android_16kb_report,
     )
+    ios_coreml = validate_ios_coreml_implementation(repository_root)
     matrix = {
         "schema_version": 1,
         "project": "EdgeGenBench",
@@ -221,6 +255,7 @@ def build_portfolio_acceptance(
                 "claim": "Build/JNI/capture paths exist; requires a supported Snapdragon APK run.",
             },
             "android_16kb_runtime": android_16kb,
+            "ios_coreml": ios_coreml,
             "power": {
                 "status": "not_measured",
                 "claim": "No power-savings claim is made without a named calibrated tool.",
@@ -266,8 +301,9 @@ def build_portfolio_acceptance(
             "AI Hub measurements are physical-device model profiles, not Android "
             "application end-to-end timings. Current-model acceptance requires source-model "
             "provenance to match the repository, as reported above.",
-            "Power remains unmeasured. The remaining hardware proof item is a supported-device "
-            "QNN APK run; the 16 KB reference APK/JNI runtime is validated on an API 35 emulator.",
+            "Power remains unmeasured. Remaining physical proof items are a supported-device "
+            "QNN APK run and a validated iPhone Core ML export; the iOS simulator build/test "
+            "lane does not establish device latency, ANE placement, or energy use.",
         ]
     )
     output_markdown.write_text("\n".join(lines) + "\n", encoding="utf-8")
