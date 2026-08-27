@@ -60,6 +60,10 @@ Repeated physical-device reference runs can be captured with
 post-run memory and thermal snapshots from sampled peaks and power measurements.
 The first retained 10-run capture is summarized in the
 [Samsung SM-A356E repeated-device report](reports/android_sm_a356e_reference_10_run_v0_1_4.md).
+The APK/JNI reference path was also executed for 10 cold launches on an Android
+15 ARM64 emulator whose runtime reported `PAGE_SIZE=16384`; the raw evidence and
+claim boundaries are summarized in the
+[Android 16 KB runtime report](reports/android_16kb_emulator_reference_v0_1_7.md).
 Every successful CI run also assembles a versioned end-to-end release-evidence
 bundle containing native baseline/fused benchmark JSON, the verified APK, the
 16 KiB alignment report, a Git revision, and SHA-256 checksums. The acceptance

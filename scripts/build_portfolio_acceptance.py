@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import subprocess
@@ -134,6 +135,60 @@ def validate_ai_hub_qnn(report_path: Path, repository_root: Path) -> dict[str, A
     }
 
 
+def validate_android_16kb_runtime(evidence_dir: Path, report_path: Path) -> dict[str, Any]:
+    if not report_path.is_file():
+        raise ValueError("tracked Android 16 KB report is missing")
+    device_report = evidence_dir / "device-report.txt"
+    measurement_status = evidence_dir / "measurement-status.txt"
+    csv_path = evidence_dir / "latency-memory.csv"
+    if not all(path.is_file() for path in (device_report, measurement_status, csv_path)):
+        raise ValueError("Android 16 KB evidence bundle is incomplete")
+
+    device = dict(
+        line.split("=", 1)
+        for line in device_report.read_text(encoding="utf-8").splitlines()
+        if "=" in line
+    )
+    if device.get("page_size") != "16384" or device.get("abi") != "arm64-v8a":
+        raise ValueError("Android runtime evidence must prove an ARM64 16 KB environment")
+    if device.get("model") != "sdk_gphone16k_arm64" or device.get("sdk") != "35":
+        raise ValueError("Android runtime evidence must identify the API 35 16 KB emulator")
+
+    with csv_path.open(encoding="utf-8", newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    if len(rows) != 10:
+        raise ValueError("Android 16 KB evidence must contain exactly ten runs")
+    for row in rows:
+        if float(row["preprocess_max_abs_drift"]) > 1e-6:
+            raise ValueError("Android 16 KB preprocessing drift exceeds tolerance")
+        if float(row["output_max_abs_drift"]) > 1e-6:
+            raise ValueError("Android 16 KB output drift exceeds tolerance")
+
+    status = measurement_status.read_text(encoding="utf-8")
+    if "backend=reference" not in status or "power=not-measured" not in status:
+        raise ValueError("Android 16 KB claim boundaries are missing")
+    logs = sorted((evidence_dir / "runs").glob("run-*/logcat.txt"))
+    if len(logs) != 10:
+        raise ValueError("Android 16 KB evidence must retain ten logcat files")
+    for log in logs:
+        content = log.read_text(encoding="utf-8")
+        if '"runtime_page_size_bytes":16384' not in content:
+            raise ValueError(f"{log.name} does not report a 16 KB runtime")
+        if "EdgeGenBench: backend=reference" not in content or "CPU fallback=false" not in content:
+            raise ValueError(f"{log.name} has invalid backend placement metadata")
+
+    return {
+        "status": "validated_16kb_emulator_runtime",
+        "environment": "Android 15 API 35 ARM64 16 KB emulator",
+        "page_size_bytes": 16384,
+        "runs": len(rows),
+        "report": f"reports/{report_path.name}",
+        "claim": (
+            "APK/JNI reference path executed on PAGE_SIZE=16384; not physical-device performance."
+        ),
+    }
+
+
 def build_portfolio_acceptance(
     *, repository_root: Path, qnn_report: Path, output_json: Path, output_markdown: Path
 ) -> dict[str, Any]:
@@ -141,6 +196,11 @@ def build_portfolio_acceptance(
     android_report = repository_root / "reports/android_sm_a356e_reference_10_run_v0_1_4.md"
     if not android_report.is_file():
         raise ValueError("tracked Samsung reference report is missing")
+    android_16kb_report = repository_root / "reports/android_16kb_emulator_reference_v0_1_7.md"
+    android_16kb = validate_android_16kb_runtime(
+        repository_root / "reports/device/android-16kb-api35-reference-10-runs",
+        android_16kb_report,
+    )
     matrix = {
         "schema_version": 1,
         "project": "EdgeGenBench",
@@ -160,10 +220,7 @@ def build_portfolio_acceptance(
                 "status": "implementation_complete_evidence_pending",
                 "claim": "Build/JNI/capture paths exist; requires a supported Snapdragon APK run.",
             },
-            "android_16kb_runtime": {
-                "status": "packaging_validated_runtime_pending",
-                "claim": "ELF/APK alignment passes; runtime PAGE_SIZE=16384 evidence is pending.",
-            },
+            "android_16kb_runtime": android_16kb,
             "power": {
                 "status": "not_measured",
                 "claim": "No power-savings claim is made without a named calibrated tool.",
@@ -209,8 +266,8 @@ def build_portfolio_acceptance(
             "AI Hub measurements are physical-device model profiles, not Android "
             "application end-to-end timings. Current-model acceptance requires source-model "
             "provenance to match the repository, as reported above.",
-            "Power remains unmeasured. The two pending proof items are a supported-device "
-            "QNN APK run and a runtime page size of 16384 bytes.",
+            "Power remains unmeasured. The remaining hardware proof item is a supported-device "
+            "QNN APK run; the 16 KB reference APK/JNI runtime is validated on an API 35 emulator.",
         ]
     )
     output_markdown.write_text("\n".join(lines) + "\n", encoding="utf-8")

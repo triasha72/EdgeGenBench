@@ -44,6 +44,11 @@ for reviewers.
   checks;
 - all retained files are bound to a Git revision with SHA-256 digests.
 
+The tracked Android 16 KB evidence separately demonstrates that the v0.1.7
+reference APK/JNI path launches and completes repeated benchmarks on an API 35
+ARM64 emulator reporting `PAGE_SIZE=16384`. It is runtime-compatibility proof,
+not physical-device performance, QNN placement, thermal, or power evidence.
+
 ## What requires a physical device
 
 CI does not claim NPU placement, thermals, or power. Attach physical-device
