@@ -1,5 +1,7 @@
 # EdgeGenBench
 
+[Portfolio case study](https://triasha72.github.io/Portfolio/case-edgegenbench.html)
+
 [![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
 
 **Scientific machine learning, uncertainty-aware aircraft-design optimization,

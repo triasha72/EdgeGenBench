@@ -1,5 +1,7 @@
 # EdgeGenBench Roadmap
 
+[Project overview and measured results](README.md)
+
 This roadmap separates completed, validated work from planned deployment and
 research milestones.
 
