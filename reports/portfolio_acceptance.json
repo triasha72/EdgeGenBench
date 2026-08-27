@@ -76,8 +76,12 @@
       "claim": "Build/JNI/capture paths exist; requires a supported Snapdragon APK run."
     },
     "android_16kb_runtime": {
-      "status": "packaging_validated_runtime_pending",
-      "claim": "ELF/APK alignment passes; runtime PAGE_SIZE=16384 evidence is pending."
+      "status": "validated_16kb_emulator_runtime",
+      "environment": "Android 15 API 35 ARM64 16 KB emulator",
+      "page_size_bytes": 16384,
+      "runs": 10,
+      "report": "reports/android_16kb_emulator_reference_v0_1_7.md",
+      "claim": "APK/JNI reference path executed on PAGE_SIZE=16384; not physical-device performance."
     },
     "power": {
       "status": "not_measured",

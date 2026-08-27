@@ -1,0 +1,20 @@
+--------- beginning of main
+08-27 16:02:28.218  8205  8205 I EdgeGenBench: MainActivity.onCreate: rendering high-contrast benchmark UI
+08-27 16:02:29.659  8205  8205 I EdgeGenBench: MainActivity.onCreate: content view attached
+08-27 16:02:29.659  8205  8205 I EdgeGenBench: MainActivity.onCreate: auto_run requested
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: backend=reference
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: CPU fallback=false
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: cold_ms=0.060667
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: warm_mean_ms=0.002259
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: warm_p95_ms=0.002458
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: runs=100
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: baseline_preprocess_mean_ms=30.244593
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: fused_preprocess_mean_ms=14.820786
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: preprocess_elements=262144
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: preprocess_speedup_x=2.040688
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: preprocess_max_abs_drift=0.000000
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: output_max_abs_drift=0.000000
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: output=0.156160
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: power=not measured
+08-27 16:02:36.015  8205  8228 I EdgeGenBench: placement={"backend":"reference","operators":{"ReferenceLinear":1},"cpu_fallback":false,"hardware_measurement":false}
+08-27 16:02:36.070  8205  8205 I EdgeGenBench: benchmark_json={"schema_version":1,"backend":"reference","cpu_fallback":false,"cold_ms":0.060667,"warm_mean_ms":0.00225875,"warm_p95_ms":0.002458,"runs":100,"baseline_preprocess_mean_ms":30.2445934,"fused_preprocess_mean_ms":14.82078586,"preprocess_elements":262144,"preprocess_speedup_x":2.040687564,"preprocess_max_abs_drift":0,"output_max_abs_drift":0,"output":0.156159997,"runtime_page_size_bytes":16384,"power":"not measured","captured_at_epoch_ms":1787860956028}

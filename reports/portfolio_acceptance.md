@@ -6,7 +6,7 @@
 | `android_reference` | `validated_physical_device` | Reference JNI/application measurements; not QNN. |
 | `qualcomm_ai_hub_qnn` | `validated_ai_hub_physical_qnn` | Physical AI Hub model profiling; not Android APK end-to-end latency. |
 | `android_qnn_apk` | `implementation_complete_evidence_pending` | Build/JNI/capture paths exist; requires a supported Snapdragon APK run. |
-| `android_16kb_runtime` | `packaging_validated_runtime_pending` | ELF/APK alignment passes; runtime PAGE_SIZE=16384 evidence is pending. |
+| `android_16kb_runtime` | `validated_16kb_emulator_runtime` | APK/JNI reference path executed on PAGE_SIZE=16384; not physical-device performance. |
 | `power` | `not_measured` | No power-savings claim is made without a named calibrated tool. |
 
 ## Validated Qualcomm QNN results
@@ -22,4 +22,4 @@ Tracked QNN context provenance match: **True** (`artifacts/qualcomm_ai_hub/curre
 | 256 | 0.047000 | 5446808.511 | 122896384 | NPU × 9 | 0.002865936 |
 
 AI Hub measurements are physical-device model profiles, not Android application end-to-end timings. Current-model acceptance requires source-model provenance to match the repository, as reported above.
-Power remains unmeasured. The two pending proof items are a supported-device QNN APK run and a runtime page size of 16384 bytes.
+Power remains unmeasured. The remaining hardware proof item is a supported-device QNN APK run; the 16 KB reference APK/JNI runtime is validated on an API 35 emulator.

@@ -50,7 +50,7 @@ for ((run = 1; run <= repeats; run++)); do
   completed=false
   for _ in {1..80}; do
     log_snapshot="$(adb logcat -d -s EdgeGenBench)"
-    if grep -q 'power=not measured' <<< "$log_snapshot"; then
+    if grep -q 'benchmark_json=' <<< "$log_snapshot"; then
       completed=true
       break
     fi
@@ -62,8 +62,13 @@ for ((run = 1; run <= repeats; run++)); do
   adb shell dumpsys meminfo "$package_name" > "$run_dir/meminfo.txt"
   adb shell dumpsys thermalservice > "$run_dir/thermal.txt"
 
-  grep -q 'backend=reference (NOT QNN)' "$run_dir/logcat.txt"
+  # Match the stable machine-readable backend line emitted by v0.1.7+.  The
+  # older UI label included "(NOT QNN)", but the structured log deliberately
+  # reports only the backend identifier.
+  grep -Eq 'EdgeGenBench: backend=reference\r?$' "$run_dir/logcat.txt"
+  grep -q 'CPU fallback=false' "$run_dir/logcat.txt"
   grep -q 'power=not measured' "$run_dir/logcat.txt"
+  grep -q 'benchmark_json=' "$run_dir/logcat.txt"
   grep -q 'baseline_preprocess_mean_ms=' "$run_dir/logcat.txt"
   grep -q 'fused_preprocess_mean_ms=' "$run_dir/logcat.txt"
   cold_ms="$(awk -F'cold_ms=' 'NF > 1 {print $2; exit}' "$run_dir/logcat.txt" | tr -d '\r')"
