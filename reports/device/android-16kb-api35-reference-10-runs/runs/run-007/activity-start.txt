@@ -1,0 +1,7 @@
+Starting: Intent { cmp=dev.edgegenbench/.MainActivity (has extras) }
+Status: ok
+LaunchState: COLD
+Activity: dev.edgegenbench/.MainActivity
+TotalTime: 4840
+WaitTime: 4842
+Complete
