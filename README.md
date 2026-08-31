@@ -4,15 +4,46 @@
 
 [![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
 
-**Scientific machine learning, uncertainty-aware aircraft-design optimization,
-and hardware-aware edge inference for hybrid-electric and hydrogen
-regional-aircraft studies.**
+EdgeGenBench follows a machine-learning model from recorded flight data to an
+edge-ready ONNX runtime. The real-data task detects abnormal approaches in
+NASA's public DASHlink records and checks whether the exported model still
+behaves correctly when sensor readings are noisy or incomplete.
 
 ## Overview
 
-EdgeGenBench is an independent, reproducible benchmark for studying how
-machine-learning surrogates behave inside early aircraft-design workflows and
-how trained models translate into deployable edge-inference systems.
+There is also an aircraft-design surrogate study in this repository. That work
+uses physics-based generated data to explore optimization, quantization, and
+hardware deployment. I treat it as an engineering benchmark, not as evidence
+about measured aircraft performance.
+
+This distinction matters because a strong notebook score does not make a model
+ready for an edge device. The exported model also has to preserve predictions,
+fit its runtime budget, reject malformed input, and remain useful when real
+measurements degrade. The release gate records those checks and currently blocks
+the model where it falls short.
+
+## Project story
+
+**Situation.** Flight-anomaly models are often evaluated as offline classifiers,
+even though an edge deployment also has to handle export drift, missing sensor
+values, tight runtime budgets, and unfamiliar inputs.
+
+**Task.** I wanted to carry one model through that full path using public
+recorded-flight data, without letting strong nominal-flight performance hide
+weak anomaly detection.
+
+**Action.** I built an aircraft-grouped split for NASA DASHlink approaches,
+trained a class-balanced Random Forest, exported it to ONNX, and checked
+prediction parity. Runtime validation rejects malformed 160-by-20 windows and
+excessive missingness. I evaluated the same held-out flights under noise,
+missing readings, and short sensor dropouts, then tied quality and deployment
+metrics to one release policy.
+
+**Result.** The model reached `94.96%` accuracy but only `0.7380` macro F1 on
+17,780 aircraft-disjoint test approaches. The gap shows why accuracy alone was
+misleading. The release remains blocked because macro F1 and late-flap recall
+miss their thresholds, even though ONNX consistency under the tested corruptions
+stayed above `99.55%`.
 
 The project combines:
 
@@ -39,7 +70,7 @@ The project combines:
 - repeated latency benchmarking;
 - reproducible testing, type checking, and continuous integration.
 
-EdgeGenBench uses synthetic or public information only. It does not contain
+EdgeGenBench uses generated or public information only. It does not contain
 proprietary aircraft-manufacturer data, software, or design information.
 
 ## Real recorded-flight track
