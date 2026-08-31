@@ -1,0 +1,28 @@
+name: Flight or deployment experiment
+description: Define a real-flight or device study before running it.
+title: "experiment: "
+labels: ["experiment"]
+body:
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision this experiment supports
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence boundary
+      description: Say whether this uses recorded DASHlink flights, generated design data, or a physical device.
+    validations: {required: true}
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Split, runtime, and metrics
+      description: Record aircraft grouping, protected data, exported graph, device, latency method, and quality gates.
+    validations: {required: true}
+  - type: textarea
+    id: risks
+    attributes:
+      label: Failure cases to protect
+      description: Include anomaly-class recall, malformed input, parity, and shift checks where relevant.
+    validations: {required: true}
