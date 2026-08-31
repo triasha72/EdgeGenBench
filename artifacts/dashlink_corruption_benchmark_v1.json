@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "evidence_label": "dashlink_real_sensor_corruption_benchmark",
+  "dataset_rows": 17780,
+  "dataset_sha256": "c5807fe88e34b838e669d385e50e967c14032c0843c8b3cf915642480393d6a2",
+  "metadata_sha256": "aa464d2badc19553cea0cda419cb2c31277f9520728ace13a6278714b37bdc2e",
+  "model_sha256": "f078b6986ea995067cf254e3b270794c6abe210eebef6d2f7015416ffa940a04",
+  "seed": 42,
+  "conditions": {
+    "clean": {
+      "accuracy": 0.9496062992125984,
+      "macro_f1": 0.7379758660968612,
+      "prediction_consistency_with_clean": 1.0
+    },
+    "gaussian_noise_1pct_channel_std": {
+      "accuracy": 0.9492688413948257,
+      "macro_f1": 0.7357783760183665,
+      "prediction_consistency_with_clean": 0.9973003374578178
+    },
+    "random_missing_2pct": {
+      "accuracy": 0.9495500562429696,
+      "macro_f1": 0.7307842464140599,
+      "prediction_consistency_with_clean": 0.9974128233970754
+    },
+    "four_timestep_dropout": {
+      "accuracy": 0.9482564679415073,
+      "macro_f1": 0.7259548588323127,
+      "prediction_consistency_with_clean": 0.9955005624296963
+    }
+  },
+  "contains_synthetic_flights": false,
+  "interpretation": "Perturbations are applied only to held-out real recorded flights."
+}

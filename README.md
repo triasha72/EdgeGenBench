@@ -92,6 +92,15 @@ is `artifacts/dashlink_release_assessment_v1.json` and is regenerated in CI.
 Runtime preprocessing now fails closed on malformed 160x20 windows, infinities,
 missing endpoints, or more than 5% missing data overall or in any channel.
 
+The same ONNX model has now been measured on all 17,780 held-out real flights
+under controlled sensor corruptions. Clean macro F1 was `0.7380`; it changed to
+`0.7358` with 1%-of-channel-standard-deviation Gaussian noise, `0.7308` with 2%
+random missing observations, and `0.7260` when four interior timesteps were
+missing. Prediction consistency with clean inference remained above `99.55%`.
+These are perturbations of recorded flights—not synthetic flight examples—and
+the checksummed result is `artifacts/dashlink_corruption_benchmark_v1.json`.
+Physical-device power and thermal measurements remain separate pending work.
+
 The selected deployment model exports to a 39,232,312-byte ONNX graph. On 2,000
 held-out rows, ONNX Runtime label agreement with scikit-learn was 100%, maximum
 probability error was `2.99e-7`, and mean CPU latency was 8.80 ms per batch
