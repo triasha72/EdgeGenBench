@@ -16,6 +16,8 @@ how trained models translate into deployable edge-inference systems.
 
 The project combines:
 
+- a real recorded-flight anomaly track using NASA DASHlink approach data;
+
 - synthetic physics-based aircraft-design data generation;
 - classical multi-output surrogate modeling;
 - compact PyTorch neural surrogate modeling;
@@ -39,6 +41,47 @@ The project combines:
 
 EdgeGenBench uses synthetic or public information only. It does not contain
 proprietary aircraft-manufacturer data, software, or design information.
+
+## Real recorded-flight track
+
+The repository now has a separate adapter and training pipeline for NASA's
+DASHlink Curated 4 Class Anomaly Detection Data Set. It contains approximately
+99,000 real commercial regional-jet approaches, represented as 160-second
+windows of 20 recorded flight variables. Labels distinguish nominal flights,
+high-speed approaches, high-path approaches, and late flap settings.
+
+The pipeline reduces each window to 100 transparent summary features and
+trains a class-balanced histogram gradient-boosting classifier. Splits are
+grouped by the de-identified aircraft prefix so one aircraft cannot appear in
+both training and evaluation partitions.
+
+```bash
+python scripts/train_dashlink_real_baseline.py \
+  --data data/external/DASHlink_full_fourclass_raw_comp.npz \
+  --metadata data/external/DASHlink_full_fourclass_raw_meta.csv
+```
+
+The existing aircraft-design surrogate remains a synthetic engineering
+benchmark and its results must not be described as measured-aircraft accuracy.
+The DASHlink track is the repository's real-data evidence boundary.
+
+The first frozen run trained on 64,887 approaches from 35 de-identified
+aircraft, selected on 17,170 validation approaches, and evaluated once on
+17,780 aircraft-disjoint test approaches.
+
+| Real DASHlink test metric | Result |
+|---|---:|
+| Accuracy | 0.9435 |
+| Macro F1 | 0.8113 |
+| Nominal F1 | 0.9701 |
+| Speed-high F1 | 0.7014 |
+| Path-high F1 | 0.6596 |
+| Late-flap F1 | 0.9140 |
+
+The path-high class is the weakest result and is retained as a limitation. The
+text-free experiment record, source checksums, split sizes, confusion matrices,
+and per-class metrics are stored in
+`artifacts/dashlink_real_baseline_v1.json`.
 
 The [browser demo](web/README.md) provides the usable iPhone path without
 Xcode: GitHub Pages serves an installable web app and inference runs locally in

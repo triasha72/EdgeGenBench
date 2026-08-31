@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0",
+  "dataset": "NASA DASHlink Curated 4 Class Anomaly Detection Data Set",
+  "source_page": "https://c3.ndc.nasa.gov/dashlink/resources/1018/",
+  "model": "HistGradientBoosting on 100 window-summary features",
+  "seed": 42,
+  "split_policy": "grouped by de-identified aircraft identifier prefix",
+  "rows": {
+    "train": 64887,
+    "validation": 17170,
+    "test": 17780
+  },
+  "source_sha256": {
+    "data": "c5807fe88e34b838e669d385e50e967c14032c0843c8b3cf915642480393d6a2",
+    "metadata": "aa464d2badc19553cea0cda419cb2c31277f9520728ace13a6278714b37bdc2e"
+  },
+  "evaluations": {
+    "validation": {
+      "rows": 17170,
+      "classification_report": {
+        "0": {
+          "precision": 0.9891534391534391,
+          "recall": 0.9446690247599798,
+          "f1-score": 0.9663995864564487,
+          "support": 15832.0
+        },
+        "1": {
+          "precision": 0.5071542130365659,
+          "recall": 0.8328981723237598,
+          "f1-score": 0.6304347826086957,
+          "support": 766.0
+        },
+        "2": {
+          "precision": 0.5447154471544715,
+          "recall": 0.8091787439613527,
+          "f1-score": 0.6511175898931001,
+          "support": 414.0
+        },
+        "3": {
+          "precision": 0.8305084745762712,
+          "recall": 0.930379746835443,
+          "f1-score": 0.8776119402985074,
+          "support": 158.0
+        },
+        "accuracy": 0.9362842166569598,
+        "macro avg": {
+          "precision": 0.717882893480187,
+          "recall": 0.8792814219701338,
+          "f1-score": 0.7813909748141881,
+          "support": 17170.0
+        },
+        "weighted avg": {
+          "precision": 0.9554740774588386,
+          "recall": 0.9362842166569598,
+          "f1-score": 0.942992234422811,
+          "support": 17170.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          14956,
+          605,
+          252,
+          19
+        ],
+        [
+          96,
+          638,
+          25,
+          7
+        ],
+        [
+          66,
+          9,
+          335,
+          4
+        ],
+        [
+          2,
+          6,
+          3,
+          147
+        ]
+      ]
+    },
+    "test": {
+      "rows": 17780,
+      "classification_report": {
+        "0": {
+          "precision": 0.9891359918200409,
+          "recall": 0.9517894477923995,
+          "f1-score": 0.9701034158570981,
+          "support": 16262.0
+        },
+        "1": {
+          "precision": 0.6044546850998463,
+          "recall": 0.8354564755838642,
+          "f1-score": 0.7014260249554367,
+          "support": 942.0
+        },
+        "2": {
+          "precision": 0.5311526479750779,
+          "recall": 0.8698979591836735,
+          "f1-score": 0.6595744680851063,
+          "support": 392.0
+        },
+        "3": {
+          "precision": 0.9042553191489362,
+          "recall": 0.9239130434782609,
+          "f1-score": 0.9139784946236559,
+          "support": 184.0
+        },
+        "accuracy": 0.9435320584926884,
+        "macro avg": {
+          "precision": 0.7572496610109752,
+          "recall": 0.8952642315095495,
+          "f1-score": 0.8112706008803243,
+          "support": 17780.0
+        },
+        "weighted avg": {
+          "precision": 0.9577795629398871,
+          "recall": 0.9435320584926884,
+          "f1-score": 0.9484415241100261,
+          "support": 17780.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          15478,
+          500,
+          274,
+          10
+        ],
+        [
+          124,
+          787,
+          24,
+          7
+        ],
+        [
+          40,
+          10,
+          341,
+          1
+        ],
+        [
+          6,
+          5,
+          3,
+          170
+        ]
+      ]
+    }
+  },
+  "contains_synthetic_data": false
+}
