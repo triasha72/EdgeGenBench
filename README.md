@@ -84,6 +84,14 @@ text-free experiment record, source checksums, split sizes, confusion matrices,
 and per-class metrics are stored in
 `artifacts/dashlink_real_baseline_v1.json`.
 
+The operational release policy currently rejects this model. It requires macro
+F1 of at least 0.75 and recall of at least 0.60 for every anomaly class, in
+addition to ONNX parity, latency, probability-error, and size limits. The model
+misses the macro-F1 gate and the flaps-late recall gate. The tracked assessment
+is `artifacts/dashlink_release_assessment_v1.json` and is regenerated in CI.
+Runtime preprocessing now fails closed on malformed 160x20 windows, infinities,
+missing endpoints, or more than 5% missing data overall or in any channel.
+
 The selected deployment model exports to a 39,232,312-byte ONNX graph. On 2,000
 held-out rows, ONNX Runtime label agreement with scikit-learn was 100%, maximum
 probability error was `2.99e-7`, and mean CPU latency was 8.80 ms per batch

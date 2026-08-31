@@ -221,6 +221,14 @@ jobs:
             --output-json /tmp/portfolio-acceptance.json \
             --output-markdown /tmp/portfolio-acceptance.md
 
+      - name: Revalidate real DASHlink release decision
+        run: |
+          python scripts/assess_dashlink_release.py \
+            artifacts/dashlink_real_baseline_v1.json \
+            /tmp/dashlink_release_assessment.json
+          diff -u artifacts/dashlink_release_assessment_v1.json \
+            /tmp/dashlink_release_assessment.json
+
   release-acceptance:
     name: End-to-end release acceptance
     runs-on: ubuntu-latest

@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "policy": "dashlink-edge-release-v1",
+  "decision": "rejected",
+  "checks": {
+    "minimum_macro_f1": {
+      "value": 0.7379758660968612,
+      "minimum": 0.75,
+      "passed": false
+    },
+    "minimum_anomaly_class_recall": {
+      "value": 0.5217391304347826,
+      "minimum": 0.6,
+      "passed": false
+    },
+    "minimum_onnx_label_agreement": {
+      "value": 1.0,
+      "minimum": 0.999,
+      "passed": true
+    },
+    "maximum_probability_error": {
+      "value": 2.98130564679866e-07,
+      "maximum": 1e-05,
+      "passed": true
+    },
+    "maximum_cpu_latency_ms_per_row": {
+      "value": 0.004400688550003906,
+      "maximum": 0.01,
+      "passed": true
+    },
+    "maximum_model_size_bytes": {
+      "value": 39232312,
+      "maximum": 40000000,
+      "passed": true
+    }
+  },
+  "required_runtime_guards": {
+    "input_shape": [
+      160,
+      20
+    ],
+    "maximum_missing_fraction": 0.05,
+    "finite_window_endpoints": true
+  }
+}
