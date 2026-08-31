@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "dataset": "NASA DASHlink Curated 4 Class Anomaly Detection Data Set",
   "source_page": "https://c3.ndc.nasa.gov/dashlink/resources/1018/",
-  "model": "HistGradientBoosting on 100 window-summary features",
+  "model": "Random Forest on 100 window-summary features",
   "seed": 42,
   "split_policy": "grouped by de-identified aircraft identifier prefix",
   "rows": {
@@ -19,67 +19,67 @@
       "rows": 17170,
       "classification_report": {
         "0": {
-          "precision": 0.9891534391534391,
-          "recall": 0.9446690247599798,
-          "f1-score": 0.9663995864564487,
+          "precision": 0.969872754491018,
+          "recall": 0.9821248105103587,
+          "f1-score": 0.975960331408486,
           "support": 15832.0
         },
         "1": {
-          "precision": 0.5071542130365659,
-          "recall": 0.8328981723237598,
-          "f1-score": 0.6304347826086957,
+          "precision": 0.656060606060606,
+          "recall": 0.5652741514360313,
+          "f1-score": 0.6072931276297335,
           "support": 766.0
         },
         "2": {
-          "precision": 0.5447154471544715,
-          "recall": 0.8091787439613527,
-          "f1-score": 0.6511175898931001,
+          "precision": 0.7245989304812834,
+          "recall": 0.6545893719806763,
+          "f1-score": 0.6878172588832487,
           "support": 414.0
         },
         "3": {
-          "precision": 0.8305084745762712,
-          "recall": 0.930379746835443,
-          "f1-score": 0.8776119402985074,
+          "precision": 0.875,
+          "recall": 0.5759493670886076,
+          "f1-score": 0.6946564885496184,
           "support": 158.0
         },
-        "accuracy": 0.9362842166569598,
+        "accuracy": 0.9518928363424578,
         "macro avg": {
-          "precision": 0.717882893480187,
-          "recall": 0.8792814219701338,
-          "f1-score": 0.7813909748141881,
+          "precision": 0.8063830727582268,
+          "recall": 0.6944844252539185,
+          "f1-score": 0.7414318016177716,
           "support": 17170.0
         },
         "weighted avg": {
-          "precision": 0.9554740774588386,
-          "recall": 0.9362842166569598,
-          "f1-score": 0.942992234422811,
+          "precision": 0.9490857210578609,
+          "recall": 0.9518928363424578,
+          "f1-score": 0.9499768534066413,
           "support": 17170.0
         }
       },
       "confusion_matrix": [
         [
-          14956,
-          605,
-          252,
-          19
+          15549,
+          200,
+          77,
+          6
         ],
         [
-          96,
-          638,
-          25,
-          7
+          312,
+          433,
+          15,
+          6
         ],
         [
-          66,
-          9,
-          335,
-          4
-        ],
-        [
-          2,
-          6,
+          139,
           3,
-          147
+          271,
+          1
+        ],
+        [
+          32,
+          24,
+          11,
+          91
         ]
       ]
     },
@@ -87,70 +87,80 @@
       "rows": 17780,
       "classification_report": {
         "0": {
-          "precision": 0.9891359918200409,
-          "recall": 0.9517894477923995,
-          "f1-score": 0.9701034158570981,
+          "precision": 0.965646320111091,
+          "recall": 0.9835198622555651,
+          "f1-score": 0.9745011424219345,
           "support": 16262.0
         },
         "1": {
-          "precision": 0.6044546850998463,
-          "recall": 0.8354564755838642,
-          "f1-score": 0.7014260249554367,
+          "precision": 0.711168164313222,
+          "recall": 0.5881104033970276,
+          "f1-score": 0.6438117373619988,
           "support": 942.0
         },
         "2": {
-          "precision": 0.5311526479750779,
-          "recall": 0.8698979591836735,
-          "f1-score": 0.6595744680851063,
+          "precision": 0.7100591715976331,
+          "recall": 0.6122448979591837,
+          "f1-score": 0.6575342465753424,
           "support": 392.0
         },
         "3": {
-          "precision": 0.9042553191489362,
-          "recall": 0.9239130434782609,
-          "f1-score": 0.9139784946236559,
+          "precision": 0.96,
+          "recall": 0.5217391304347826,
+          "f1-score": 0.676056338028169,
           "support": 184.0
         },
-        "accuracy": 0.9435320584926884,
+        "accuracy": 0.9496062992125984,
         "macro avg": {
-          "precision": 0.7572496610109752,
-          "recall": 0.8952642315095495,
-          "f1-score": 0.8112706008803243,
+          "precision": 0.8367184140054865,
+          "recall": 0.6764035735116397,
+          "f1-score": 0.7379758660968612,
           "support": 17780.0
         },
         "weighted avg": {
-          "precision": 0.9577795629398871,
-          "recall": 0.9435320584926884,
-          "f1-score": 0.9484415241100261,
+          "precision": 0.9464704197804212,
+          "recall": 0.9496062992125984,
+          "f1-score": 0.9469041634148041,
           "support": 17780.0
         }
       },
       "confusion_matrix": [
         [
-          15478,
-          500,
-          274,
-          10
+          15994,
+          190,
+          76,
+          2
         ],
         [
-          124,
-          787,
-          24,
-          7
+          369,
+          554,
+          17,
+          2
         ],
         [
-          40,
-          10,
-          341,
-          1
+          143,
+          9,
+          240,
+          0
         ],
         [
-          6,
+          57,
+          26,
           5,
-          3,
-          170
+          96
         ]
       ]
     }
   },
-  "contains_synthetic_data": false
+  "contains_synthetic_data": false,
+  "onnx": {
+    "path": "dashlink_real_baseline_v1.onnx",
+    "sha256": "f078b6986ea995067cf254e3b270794c6abe210eebef6d2f7015416ffa940a04",
+    "size_bytes": 39232312,
+    "parity_rows": 2000,
+    "label_agreement": 1.0,
+    "max_probability_absolute_error": 2.98130564679866e-07,
+    "cpu_mean_batch_latency_ms": 8.801377100007812,
+    "cpu_mean_per_row_latency_ms": 0.004400688550003906
+  }
 }

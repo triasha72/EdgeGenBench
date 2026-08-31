@@ -51,7 +51,7 @@ windows of 20 recorded flight variables. Labels distinguish nominal flights,
 high-speed approaches, high-path approaches, and late flap settings.
 
 The pipeline reduces each window to 100 transparent summary features and
-trains a class-balanced histogram gradient-boosting classifier. Splits are
+trains a class-balanced Random Forest with a stable ONNX tree-ensemble export. Splits are
 grouped by the de-identified aircraft prefix so one aircraft cannot appear in
 both training and evaluation partitions.
 
@@ -71,17 +71,24 @@ aircraft, selected on 17,170 validation approaches, and evaluated once on
 
 | Real DASHlink test metric | Result |
 |---|---:|
-| Accuracy | 0.9435 |
-| Macro F1 | 0.8113 |
-| Nominal F1 | 0.9701 |
-| Speed-high F1 | 0.7014 |
-| Path-high F1 | 0.6596 |
-| Late-flap F1 | 0.9140 |
+| Accuracy | 0.9496 |
+| Macro F1 | 0.7380 |
+| Nominal F1 | 0.9745 |
+| Speed-high F1 | 0.6438 |
+| Path-high F1 | 0.6575 |
+| Late-flap F1 | 0.6761 |
 
-The path-high class is the weakest result and is retained as a limitation. The
+The minority-class results are substantially weaker than nominal-flight
+performance and are retained as a limitation. The
 text-free experiment record, source checksums, split sizes, confusion matrices,
 and per-class metrics are stored in
 `artifacts/dashlink_real_baseline_v1.json`.
+
+The selected deployment model exports to a 39,232,312-byte ONNX graph. On 2,000
+held-out rows, ONNX Runtime label agreement with scikit-learn was 100%, maximum
+probability error was `2.99e-7`, and mean CPU latency was 8.80 ms per batch
+(`0.0044 ms` per row) over 20 repeated runs on the local host. These are host-
+specific measurements, not mobile-device latency claims.
 
 The [browser demo](web/README.md) provides the usable iPhone path without
 Xcode: GitHub Pages serves an installable web app and inference runs locally in

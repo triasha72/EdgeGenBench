@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import time
 from pathlib import Path
 
-from sklearn.ensemble import HistGradientBoostingClassifier
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import GroupShuffleSplit
 
@@ -23,6 +25,43 @@ def sha256(path):
     return value.hexdigest()
 
 
+def export_and_validate_onnx(model, features, test, output):
+    import onnxruntime as ort
+    from skl2onnx import convert_sklearn
+    from skl2onnx.common.data_types import FloatTensorType
+
+    graph = convert_sklearn(
+        model,
+        initial_types=[("features", FloatTensorType([None, features.shape[1]]))],
+        options={id(model): {"zipmap": False}},
+        target_opset=18,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(graph.SerializeToString())
+    session = ort.InferenceSession(str(output), providers=["CPUExecutionProvider"])
+    sample = features[test[: min(2_000, len(test))]].astype(np.float32)
+    expected_labels = model.predict(sample)
+    expected_probabilities = model.predict_proba(sample)
+    observed_labels, observed_probabilities = session.run(None, {"features": sample})
+    started = time.perf_counter()
+    repeats = 20
+    for _ in range(repeats):
+        session.run(None, {"features": sample})
+    elapsed = time.perf_counter() - started
+    return {
+        "path": output.name,
+        "sha256": sha256(output),
+        "size_bytes": output.stat().st_size,
+        "parity_rows": len(sample),
+        "label_agreement": float(np.mean(expected_labels == observed_labels)),
+        "max_probability_absolute_error": float(
+            np.max(np.abs(expected_probabilities - observed_probabilities))
+        ),
+        "cpu_mean_batch_latency_ms": elapsed * 1_000 / repeats,
+        "cpu_mean_per_row_latency_ms": elapsed * 1_000 / (repeats * len(sample)),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, required=True)
@@ -30,6 +69,9 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--output", type=Path, default=Path("artifacts/dashlink_real_baseline_v1.json")
+    )
+    parser.add_argument(
+        "--onnx-output", type=Path, default=Path("artifacts/dashlink_real_baseline_v1.onnx")
     )
     args = parser.parse_args()
     windows, labels, metadata = load_dashlink(args.data, args.metadata)
@@ -43,8 +85,13 @@ def main():
     )
     train = train_val[train_rel]
     validation = train_val[val_rel]
-    model = HistGradientBoostingClassifier(
-        max_iter=150, l2_regularization=1.0, random_state=args.seed, class_weight="balanced"
+    model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=18,
+        min_samples_leaf=3,
+        class_weight="balanced_subsample",
+        n_jobs=-1,
+        random_state=args.seed,
     )
     model.fit(features[train], labels[train])
     records = {}
@@ -63,7 +110,7 @@ def main():
         "schema_version": "1.0",
         "dataset": "NASA DASHlink Curated 4 Class Anomaly Detection Data Set",
         "source_page": "https://c3.ndc.nasa.gov/dashlink/resources/1018/",
-        "model": "HistGradientBoosting on 100 window-summary features",
+        "model": "Random Forest on 100 window-summary features",
         "seed": args.seed,
         "split_policy": "grouped by de-identified aircraft identifier prefix",
         "rows": {"train": len(train), "validation": len(validation), "test": len(test)},
@@ -71,6 +118,7 @@ def main():
         "evaluations": records,
         "contains_synthetic_data": False,
     }
+    payload["onnx"] = export_and_validate_onnx(model, features, test, args.onnx_output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n")
     print(json.dumps(records["test"]["classification_report"]["macro avg"], indent=2))
