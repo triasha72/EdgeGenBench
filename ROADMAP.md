@@ -18,6 +18,11 @@ strong nominal class even easier. Class weighting, calibrated probabilities,
 and an abstention option should be compared on the validation set. The protected
 test data stays untouched until a candidate is chosen.
 
+The validation-only selector and abstention metrics are now implemented. A
+candidate must reach macro F1 0.75, minimum anomaly recall 0.60, and 80% retained
+coverage before the protected test can be opened. The real-data candidate run
+still requires the locally held NASA archive.
+
 Where the public metadata supports it, I also want to create harder splits by
 airport, time, weather, or aircraft subgroup. That would show whether the model
 has learned an anomaly pattern or merely the conditions surrounding it.
