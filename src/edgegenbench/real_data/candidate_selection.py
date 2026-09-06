@@ -22,15 +22,23 @@ def selective_metrics(
     if not np.any(covered):
         return {"coverage": 0.0, "macro_f1": 0.0, "minimum_anomaly_recall": 0.0}
     recalls = recall_score(
-        expected[covered], prediction[covered], labels=[1, 2, 3],
-        average=None, zero_division=0,
+        expected[covered],
+        prediction[covered],
+        labels=[1, 2, 3],
+        average=None,
+        zero_division=0,
     )
     return {
         "coverage": float(np.mean(covered)),
-        "macro_f1": float(f1_score(
-            expected[covered], prediction[covered], labels=[0, 1, 2, 3],
-            average="macro", zero_division=0,
-        )),
+        "macro_f1": float(
+            f1_score(
+                expected[covered],
+                prediction[covered],
+                labels=[0, 1, 2, 3],
+                average="macro",
+                zero_division=0,
+            )
+        ),
         "minimum_anomaly_recall": float(np.min(recalls)),
     }
 
@@ -38,7 +46,8 @@ def selective_metrics(
 def select_candidate(records: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Choose only a validation candidate meeting frozen quality and coverage gates."""
     eligible = [
-        record for record in records
+        record
+        for record in records
         if record["validation"]["macro_f1"] >= 0.75
         and record["validation"]["minimum_anomaly_recall"] >= 0.60
         and record["validation"]["coverage"] >= 0.80
