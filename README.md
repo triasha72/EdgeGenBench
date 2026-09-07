@@ -2,6 +2,8 @@
 
 [Portfolio case study](https://triasha72.github.io/Portfolio/case-edgegenbench.html)
 
+[Interview brief](docs/INTERVIEW_BRIEF.md) — the problem, evidence boundary, reproduction check, and next validation.
+
 [![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
 
 EdgeGenBench follows a machine-learning model from recorded flight data to an
