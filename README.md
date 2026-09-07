@@ -2,9 +2,27 @@
 
 [Portfolio case study](https://triasha72.github.io/Portfolio/case-edgegenbench.html)
 
-[Interview brief](docs/INTERVIEW_BRIEF.md) — the problem, evidence boundary, reproduction check, and next validation.
+[Project overview](docs/PROJECT_OVERVIEW.md) — the problem, evidence boundary, reproduction check, and next validation.
 
 [![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
+
+## In brief
+
+EdgeGenBench evaluates a real DASHlink flight-anomaly model through ONNX export
+and release checks. The current model preserves predictions under tested sensor
+corruptions, but its 0.7380 macro F1 misses the quality gate, so the release is
+blocked.
+
+## System architecture
+
+```mermaid
+flowchart LR
+    A[NASA DASHlink approaches] --> B[Aircraft-grouped split\nand feature extraction]
+    B --> C[Class-balanced model]
+    C --> D[ONNX export]
+    D --> E[Input validation and\ncorruption checks]
+    E --> F[Quality and release gates]
+```
 
 EdgeGenBench follows a machine-learning model from recorded flight data to an
 edge-ready ONNX runtime. The real-data task detects abnormal approaches in

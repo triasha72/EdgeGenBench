@@ -1,4 +1,4 @@
-# EdgeGenBench interview brief
+# EdgeGenBench project overview
 
 ## The problem
 
@@ -32,7 +32,7 @@ pytest -q
 The DASHlink training command and the checksummed measurement artifacts are in
 the [README](../README.md). The public data is not redistributed here.
 
-## The next validation
+## Next validation
 
 The highest-value next step is improving minority anomaly detection without
 weakening the grouped split, followed by a named physical-device measurement of
