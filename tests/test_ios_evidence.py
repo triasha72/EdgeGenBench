@@ -81,3 +81,28 @@ def test_rejects_unproven_ane_claim(tmp_path: Path) -> None:
     evidence.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="ANE placement"):
         validate_ios_evidence(evidence, model_path=model, preprocessing_path=preprocessing)
+
+
+@pytest.mark.parametrize("field", ["coldMs", "warmMeanMs", "warmP95Ms"])
+def test_rejects_nonfinite_latency(tmp_path, field):
+    model, prep = tmp_path / "model", tmp_path / "prep"
+    model.write_bytes(b"model")
+    prep.write_bytes(b"prep")
+    payload = _evidence(model, prep)
+    payload["latency"][field] = float("nan")
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="positive"):
+        validate_ios_evidence(evidence, model_path=model, preprocessing_path=prep)
+
+
+def test_rejects_inconsistent_raw_samples(tmp_path):
+    model, prep = tmp_path / "model", tmp_path / "prep"
+    model.write_bytes(b"model")
+    prep.write_bytes(b"prep")
+    payload = _evidence(model, prep)
+    payload["warmLatencySamplesMs"] = [2.0] * 100
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="summary"):
+        validate_ios_evidence(evidence, model_path=model, preprocessing_path=prep)

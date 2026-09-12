@@ -33,6 +33,9 @@ struct IOSBenchmarkEvidence: Codable {
     let latency: LatencySummary
     let outputMaxAbsDrift: Double
     let outputs: [PredictionValue]
+    var warmLatencySamplesMs: [Double]? = nil
+    var inputValues: [Double]? = nil
+    var inputCategory: String? = nil
 }
 
 struct PredictionValue: Codable {
@@ -100,7 +103,10 @@ enum IOSBenchmarkRunner {
                 warmRuns: warmRuns
             ),
             outputMaxAbsDrift: maxDrift,
-            outputs: coldOutput.map { PredictionValue(name: $0.name, value: $0.value) }
+            outputs: coldOutput.map { PredictionValue(name: $0.name, value: $0.value) },
+            warmLatencySamplesMs: latencies,
+            inputValues: numericValues,
+            inputCategory: category
         )
     }
 

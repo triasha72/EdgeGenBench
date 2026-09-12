@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -39,22 +40,37 @@ def validate_ios_evidence(
     latency = evidence.get("latency")
     if not isinstance(device, dict) or not isinstance(latency, dict):
         raise ValueError("device identity and latency summary are required")
-    if bool(device.get("simulator")) and not allow_simulator:
+    if not isinstance(device.get("simulator"), bool) or not device.get("model"):
+        raise ValueError("explicit simulator boolean and device model required")
+    if device["simulator"] and not allow_simulator:
         raise ValueError("physical-iPhone evidence cannot come from a simulator")
     if device.get("systemName") != "iOS" and not allow_simulator:
         raise ValueError("physical evidence must identify iOS")
     if int(latency.get("warmRuns", 0)) < 100:
         raise ValueError("at least 100 warm inference runs are required")
     for name in ("coldMs", "warmMeanMs", "warmP95Ms"):
-        if float(latency.get(name, 0)) <= 0:
+        if not math.isfinite(float(latency.get(name, 0))) or float(latency.get(name, 0)) <= 0:
             raise ValueError(f"{name} must be positive")
-    if float(evidence.get("outputMaxAbsDrift", 1.0)) > 1e-6:
+    drift = float(evidence.get("outputMaxAbsDrift", 1.0))
+    if not math.isfinite(drift) or not 0 <= drift <= 1e-6:
         raise ValueError("iOS repeated-output drift exceeds tolerance")
     if evidence.get("sourceModelSha256") != _sha256(model_path):
         raise ValueError("iOS source-model provenance does not match the repository")
     if evidence.get("preprocessingSha256") != _sha256(preprocessing_path):
         raise ValueError("iOS preprocessing provenance does not match the repository")
 
+    samples = evidence.get("warmLatencySamplesMs")
+    if samples is not None:
+        if len(samples) != latency["warmRuns"] or not all(
+            math.isfinite(x) and x > 0 for x in samples
+        ):
+            raise ValueError("invalid warm latency samples")
+        mean = sum(samples) / len(samples)
+        p95 = sorted(samples)[math.ceil(0.95 * len(samples)) - 1]
+        if not math.isclose(mean, latency["warmMeanMs"], rel_tol=1e-8) or not math.isclose(
+            p95, latency["warmP95Ms"], rel_tol=1e-8
+        ):
+            raise ValueError("summary does not match latency samples")
     return {
         "status": "validated_physical_iphone_coreml"
         if not device["simulator"]
@@ -71,7 +87,8 @@ def validate_ios_evidence(
         "power_measurement": "not_measured",
         "neural_engine_placement": "not_measured",
         "claim_boundary": (
-            "Physical iPhone Core ML application latency; not proof of Apple Neural Engine "
+            ("Simulator integration only; " if device["simulator"] else "Physical iPhone latency; ")
+            + "not proof of Apple Neural Engine "
             "placement and not a power measurement."
         ),
     }
@@ -83,7 +100,7 @@ def write_report(summary: dict[str, Any], output_json: Path, output_markdown: Pa
     latency = summary["latency"]
     device = summary["device"]
     lines = [
-        "# EdgeGenBench physical iPhone Core ML report",
+        "# EdgeGenBench Core ML execution report",
         "",
         f"- Status: `{summary['status']}`",
         f"- Device: `{device['model']}`",
