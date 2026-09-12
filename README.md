@@ -1189,3 +1189,8 @@ git diff --check
   end-to-end Android application latency or a cross-hardware speed ranking.
 - Distribution-shift and extrapolation robustness were not measured in the
   reported experiments.
+
+## iOS implementation update
+
+See [iOS implementation and validation boundary](docs/ios-implementation-update.md)
+for background execution, raw evidence export, integration tests and device steps.

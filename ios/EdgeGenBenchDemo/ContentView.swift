@@ -17,7 +17,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Aircraft design") {
+                Section("Aircraft design — generated-data model") {
                     ForEach(featureNames.indices, id: \.self) { index in
                         TextField(featureNames[index], value: $values[index], format: .number)
                             .keyboardType(.decimalPad)
@@ -50,23 +50,30 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("EdgeGenBench")
+            .disabled(isRunning)
         }
     }
 
     private func runBenchmark() {
         isRunning = true
-        do {
-            let result = try IOSBenchmarkRunner.run(numericValues: values, category: category)
-            evidence = result
-            predictions = result.outputs.map { Prediction(name: $0.name, value: $0.value) }
-            evidenceURL = try result.writeTemporaryJSON()
-            message = "Core ML benchmark completed (1 cold + \(result.latency.warmRuns) warm runs)."
-        } catch {
-            predictions = []
-            evidence = nil
-            evidenceURL = nil
-            message = error.localizedDescription
+        evidence = nil
+        evidenceURL = nil
+        let inputValues = values
+        let inputCategory = category
+        Task {
+            do {
+                let result = try await Task.detached(priority: .userInitiated) {
+                    try IOSBenchmarkRunner.run(numericValues: inputValues, category: inputCategory)
+                }.value
+                evidence = result
+                predictions = result.outputs.map { Prediction(name: $0.name, value: $0.value) }
+                evidenceURL = try result.writeTemporaryJSON()
+                message = "Completed 1 model-load + first-prediction and \(result.latency.warmRuns) warm runs."
+            } catch {
+                predictions = []
+                message = error.localizedDescription
+            }
+            isRunning = false
         }
-        isRunning = false
     }
 }

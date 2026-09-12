@@ -52,6 +52,7 @@ final class SurrogatePredictor {
         let contractData = try Data(contentsOf: contractURL)
         contract = try JSONDecoder().decode(ModelContract.self, from: contractData)
         contractSHA256 = SHA256.hash(data: contractData).map { String(format: "%02x", $0) }.joined()
+        try contract.validate()
         guard contract.featureMean.count + contract.categories.count == contract.inputDimension,
               contract.featureScale.count == contract.featureMean.count,
               contract.targets.count == contract.outputDimension,
@@ -72,7 +73,8 @@ final class SurrogatePredictor {
     }
 
     func predict(numericValues: [Double], category: String) throws -> [Prediction] {
-        guard numericValues.count == contract.featureMean.count,
+        guard numericValues.allSatisfy({ $0.isFinite }),
+              numericValues.count == contract.featureMean.count,
               let categoryIndex = contract.categories.firstIndex(of: category) else {
             throw SurrogateError.invalidContract("input values do not agree")
         }
@@ -89,8 +91,32 @@ final class SurrogatePredictor {
               normalized.count == contract.outputDimension else {
             throw SurrogateError.invalidOutput
         }
-        return contract.targets.indices.map { index in
+        guard (0..<normalized.count).allSatisfy({ normalized[$0].doubleValue.isFinite }) else {
+            throw SurrogateError.invalidOutput
+        }
+        let predictions = contract.targets.indices.map { index in
             Prediction(name: contract.targets[index], value: normalized[index].doubleValue * contract.targetScale[index] + contract.targetMean[index])
+        }
+        guard predictions.allSatisfy({ $0.value.isFinite }) else {
+            throw SurrogateError.invalidOutput
+        }
+        return predictions
+    }
+}
+
+
+extension ModelContract {
+    func validate() throws {
+        guard schemaVersion == "1.0", !numericFeatures.isEmpty,
+              numericFeatures.count == featureMean.count,
+              featureMean.count == featureScale.count,
+              Set(numericFeatures).count == numericFeatures.count,
+              !categories.isEmpty, Set(categories).count == categories.count,
+              featureMean.allSatisfy({ $0.isFinite }),
+              featureScale.allSatisfy({ $0.isFinite && $0 > 0 }),
+              targetMean.allSatisfy({ $0.isFinite }),
+              targetScale.allSatisfy({ $0.isFinite && $0 > 0 }) else {
+            throw SurrogateError.invalidContract("nonfinite, duplicate, or invalid preprocessing values")
         }
     }
 }
