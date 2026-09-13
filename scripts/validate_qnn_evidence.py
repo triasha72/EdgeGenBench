@@ -15,7 +15,12 @@ def main() -> None:
     parser.add_argument("evidence", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    summary = validate_qnn_evidence_bundle(args.evidence)
+    try:
+        summary = validate_qnn_evidence_bundle(args.evidence)
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        # Keep CI and device operators on the same fail-closed path, while
+        # still returning a useful one-line diagnosis instead of a traceback.
+        parser.error(str(exc))
     rendered = json.dumps(summary, indent=2) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
