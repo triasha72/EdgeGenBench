@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml/badge.svg)](https://github.com/triasha72/EdgeGenBench/actions/workflows/ci.yml)
 
-## In brief
+## Overview
 
 EdgeGenBench evaluates a real DASHlink flight-anomaly model through ONNX export
 and release checks. The current model preserves predictions under tested sensor
@@ -42,7 +42,7 @@ fit its runtime budget, reject malformed input, and remain useful when real
 measurements degrade. The release gate records those checks and currently blocks
 the model where it falls short.
 
-## Project story
+## Background
 
 **Situation.** Flight-anomaly models are often evaluated as offline classifiers,
 even though an edge deployment also has to handle export drift, missing sensor
