@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var category = "conventional_turboprop"
     @State private var predictions: [Prediction] = []
     @State private var message = "Run the bundled Core ML model and capture cold + warm evidence."
+    @State private var inputWarning: String?
     @State private var evidence: IOSBenchmarkEvidence?
     @State private var evidenceURL: URL?
     @State private var isRunning = false
@@ -19,10 +20,20 @@ struct ContentView: View {
             Form {
                 Section("Aircraft design — generated-data model") {
                     ForEach(featureNames.indices, id: \.self) { index in
-                        TextField(featureNames[index], value: $values[index], format: .number)
+                        TextField(featureNames[index].replacingOccurrences(of: "_", with: " "), value: $values[index], format: .number)
                             .keyboardType(.decimalPad)
                     }
-                    TextField("propulsion_architecture", text: $category)
+                    Picker("Propulsion architecture", selection: $category) {
+                        ForEach(["conventional_turboprop", "fuel_cell_electric", "parallel_hybrid", "series_hybrid"], id: \.self) { value in
+                            Text(value.replacingOccurrences(of: "_", with: " ")).tag(value)
+                        }
+                    }
+                    Button("Reset to reference inputs", action: resetInputs)
+                    if let inputWarning {
+                        Label(inputWarning, systemImage: "exclamationmark.triangle")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    }
                 }
                 Section {
                     Button(isRunning ? "Benchmarking…" : "Run cold + warm benchmark", action: runBenchmark)
@@ -51,10 +62,17 @@ struct ContentView: View {
             }
             .navigationTitle("EdgeGenBench")
             .disabled(isRunning)
+            .onChange(of: values) { _, _ in updateInputWarning() }
         }
+        .task { updateInputWarning() }
     }
 
     private func runBenchmark() {
+        guard values.count == featureNames.count, values.allSatisfy(\.isFinite) else {
+            message = "Enter finite numeric values for every feature."
+            return
+        }
+        updateInputWarning()
         isRunning = true
         evidence = nil
         evidenceURL = nil
@@ -75,5 +93,25 @@ struct ContentView: View {
             }
             isRunning = false
         }
+    }
+
+    private func resetInputs() {
+        values = [65.0, 950.0, 535.0, 527.0, 0.57, 0.24]
+        category = "conventional_turboprop"
+        message = "Reference inputs restored."
+        updateInputWarning()
+    }
+
+    private func updateInputWarning() {
+        let means = [64.93524, 950.4023, 534.7646, 526.7014, 0.57418, 0.24301]
+        let scales = [14.40655, 318.0289, 66.45373, 130.1412, 0.072085, 0.215283]
+        guard values.count == means.count, values.allSatisfy(\.isFinite) else {
+            inputWarning = "Some inputs are not finite."
+            return
+        }
+        let maximumZ = zip(values, zip(means, scales)).map { pair in
+            abs((pair.0 - pair.1.0) / pair.1.1)
+        }.max() ?? 0
+        inputWarning = maximumZ > 3 ? "Inputs are outside the training distribution (max |z| = \(maximumZ.formatted(.number.precision(.fractionLength(1))))." : nil
     }
 }
