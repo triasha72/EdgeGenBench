@@ -7,7 +7,7 @@ struct ContentView: View {
         "hybridization_ratio"
     ]
     @State private var values = [4.0, 250.0, 180.0, 300.0, 0.65, 0.5]
-    @State private var category = "battery_electric"
+    @State private var category = "conventional_turboprop"
     @State private var predictions: [Prediction] = []
     @State private var message = "Run the bundled Core ML model and capture cold + warm evidence."
     @State private var evidence: IOSBenchmarkEvidence?

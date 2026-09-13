@@ -107,7 +107,7 @@ final class SurrogatePredictor {
 
 extension ModelContract {
     func validate() throws {
-        guard schemaVersion == "1.0", !numericFeatures.isEmpty,
+        guard schemaVersion == "1.0" || schemaVersion == "1.1", !numericFeatures.isEmpty,
               numericFeatures.count == featureMean.count,
               featureMean.count == featureScale.count,
               Set(numericFeatures).count == numericFeatures.count,

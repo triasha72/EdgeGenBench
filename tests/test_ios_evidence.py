@@ -83,6 +83,14 @@ def test_rejects_unproven_ane_claim(tmp_path: Path) -> None:
         validate_ios_evidence(evidence, model_path=model, preprocessing_path=preprocessing)
 
 
+def test_bundled_contract_schema_and_default_category_are_current() -> None:
+    contract = json.loads(
+        (Path(__file__).parents[1] / "ios/EdgeGenBenchDemo/Resources/ModelContract.json").read_text()
+    )
+    assert contract["schemaVersion"] in {"1.0", "1.1"}
+    assert "conventional_turboprop" in contract["categories"]
+
+
 @pytest.mark.parametrize("field", ["coldMs", "warmMeanMs", "warmP95Ms"])
 def test_rejects_nonfinite_latency(tmp_path, field):
     model, prep = tmp_path / "model", tmp_path / "prep"
