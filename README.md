@@ -162,9 +162,9 @@ The [browser demo](web/README.md) provides the usable iPhone path without
 Xcode: GitHub Pages serves an installable web app and inference runs locally in
 Safari. The separate [native app](ios/README.md) preserves the Core ML route,
 automates current-model export, builds and tests on an unsigned iOS simulator
-in CI, and exports validation-ready physical-iPhone evidence. Device latency,
-ANE placement, and energy remain unclaimed until their respective evidence is
-captured and validated.
+in CI, and exports validation-ready physical-iPhone evidence. The retained
+[iPhone 16 Pro runs](reports/iphone/) measure application-level latency; ANE
+placement and energy remain unclaimed until separately measured.
 
 ## Native C++ and Android runtime
 

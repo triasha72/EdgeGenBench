@@ -22,9 +22,10 @@ CoreMLIntegrationTests loads the bundled model, executes inference and attaches
 100-run evidence to the Xcode result. A simulator test checks integration only.
 For hardware evidence, choose a physical iPhone and signing team in Xcode, run the
 app and export its JSON through Share. Use `scripts/validate_ios_evidence.py --help`
-to validate against the source artifact hashes. No physical iPhone timings have
-been collected in this update. The local Xcode build was blocked by the execution
-sandbox; the integration test has not yet been confirmed passing.
+to validate against the source artifact hashes. The retained iPhone 16 Pro runs in
+[`reports/iphone/`](../reports/iphone/) validate the current Core ML model on a
+physical device. They measure application-level latency only; they do not identify
+the selected compute unit or measure device power.
 
 Core ML `.all` requests available compute units; it does not prove ANE placement.
 Use retained Instruments measurements for placement or power claims. Cold latency
