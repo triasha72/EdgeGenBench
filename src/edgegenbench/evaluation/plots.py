@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import matplotlib
+
+# Plot files are written to disk; no interactive window is required. Selecting a
+# non-GUI backend keeps this module runnable in CI and on headless hosts.
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

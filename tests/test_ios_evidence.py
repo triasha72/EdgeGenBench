@@ -9,6 +9,9 @@ from typing import cast
 
 import pytest
 
+from edgegenbench.deployment.coreml_export import build_ios_contract
+from edgegenbench.models.neural_preprocessing import NeuralPreprocessor
+
 SCRIPT = Path(__file__).parents[1] / "scripts/validate_ios_evidence.py"
 ValidateIOS = Callable[..., dict[str, object]]
 validate_ios_evidence = cast(ValidateIOS, runpy.run_path(SCRIPT)["validate_ios_evidence"])
@@ -83,11 +86,13 @@ def test_rejects_unproven_ane_claim(tmp_path: Path) -> None:
         validate_ios_evidence(evidence, model_path=model, preprocessing_path=preprocessing)
 
 
-def test_bundled_contract_schema_and_default_category_are_current() -> None:
-    contract = json.loads(
-        (Path(__file__).parents[1] / "ios/EdgeGenBenchDemo/Resources/ModelContract.json").read_text()
+def test_current_ios_contract_schema_and_default_category_are_current() -> None:
+    repository_root = Path(__file__).parents[1]
+    preprocessor = NeuralPreprocessor.load(
+        repository_root / "artifacts/neural_surrogate/preprocessing.npz"
     )
-    assert contract["schemaVersion"] in {"1.0", "1.1"}
+    contract = build_ios_contract(preprocessor)
+    assert contract["schemaVersion"] == "1.1"
     assert "conventional_turboprop" in contract["categories"]
 
 
