@@ -29,6 +29,9 @@ has learned an anomaly pattern or merely the conditions surrounding it.
 
 ## The next deployment work
 
+- [x] Make the plotting and iOS-contract tests run from a fresh headless clone.
+  The plot module uses Matplotlib's non-interactive backend, and the iOS test
+  checks the tracked preprocessing contract instead of an ignored generated file.
 - Measure end-to-end latency, peak memory, and energy on named physical devices.
 - Run the exact preprocessing and ONNX graph used in the application, not a
   detached matrix benchmark.
