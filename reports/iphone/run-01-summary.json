@@ -1,0 +1,25 @@
+{
+  "status": "validated_physical_iphone_coreml",
+  "captured_at_utc": "2026-09-13T00:42:55Z",
+  "app_version": "0.1.0",
+  "device": {
+    "model": "iPhone17,1",
+    "simulator": false,
+    "systemName": "iOS",
+    "systemVersion": "26.6.2"
+  },
+  "backend": "CoreML",
+  "requested_compute_units": "all",
+  "latency": {
+    "coldMs": 154.524125,
+    "warmMeanMs": 0.03625252,
+    "warmP95Ms": 0.04275,
+    "warmRuns": 100
+  },
+  "output_max_abs_drift": 0,
+  "thermal_state_before": "nominal",
+  "thermal_state_after": "nominal",
+  "power_measurement": "not_measured",
+  "neural_engine_placement": "not_measured",
+  "claim_boundary": "Physical iPhone latency; not proof of Apple Neural Engine placement and not a power measurement."
+}
